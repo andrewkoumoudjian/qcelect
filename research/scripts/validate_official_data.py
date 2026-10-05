@@ -43,7 +43,7 @@ def main() -> None:
     transposition_dir.mkdir(parents=True, exist_ok=True)
 
     transposition_summaries: dict[str, object] = {}
-    for election in ("2018-10-01", "2022-10-03"):
+    for election in MODERN_ELECTIONS:
         source_path = download_geometry(election, geometry_dir)
         source = load_geometry_zip(source_path)
         election_rows = dataset.rows[dataset.rows["election"] == election].copy()
@@ -69,12 +69,6 @@ def main() -> None:
     summary = {
         "historical": dataset.diagnostics,
         "transposition": transposition_summaries,
-        "blocked": {
-            "2014-04-07": (
-                "No authoritative 2014 polling-section geometry is exposed "
-                "by the current DGEQ archive; no substitute was used."
-            )
-        },
     }
     (base / "official-data-validation.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",

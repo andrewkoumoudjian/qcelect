@@ -117,13 +117,17 @@ def _header_and_records(raw: bytes) -> tuple[list[str], list[list[str]]]:
     header_index = next(
         (
             index
-            for index, row in enumerate(rows[:5])
+            for index, row in enumerate(rows[:25])
             if row and row[0].strip().rstrip(":").lower() == "header"
         ),
         None,
     )
     if header_index is None:
-        raise ValueError("modern DGEQ file is missing Header: prefix")
+        sample = [row[:5] for row in rows[:8]]
+        raise ValueError(
+            "modern DGEQ file is missing Header: prefix; "
+            f"first rows={sample!r}"
+        )
 
     headers = [
         value.strip()

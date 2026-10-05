@@ -11,6 +11,8 @@ The initial research utilities are derived from Andrew Koumoudjian's prior Québ
 
 Ported knowledge includes archive URL patterns, historical format/encoding changes, Header-prefix parsing, trailing-garbage handling, polling-section alignment cautions, turnout validation and the manual Moran's-I research utility.
 
+The province-wide 2014/2018/2022 pipeline uses the same archive catalog and parser lessons, but downloads the official ZIP archives reproducibly rather than copying the prior Jeanne-Mance–Viger CSV collection. Tiny synthetic fixtures preserve the observed DGEQ header variants, including the 2014 trailing-comma form, solely for regression testing.
+
 The narrow Jeanne-Mance–Viger CSVs are not copied into this repository because the useful reusable primitive is the reproducible acquisition/parser pipeline, not duplicated data.
 
 ## External references not vendored

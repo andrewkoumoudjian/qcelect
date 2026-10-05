@@ -1,3 +1,4 @@
+import ridingMetadata from "../../../../data/ridings-2026.json";
 import { LiveResults } from "../components/LiveResults";
 
 export default function Home() {
@@ -5,12 +6,11 @@ export default function Home() {
     <main className="page">
       <header className="masthead">
         <div>
-          <p className="eyebrow">Québec 2026</p>
-          <h1>Résultats en direct</h1>
+          <h1>Québec 2026</h1>
         </div>
       </header>
 
-      <LiveResults />
+      <LiveResults ridingMetadata={ridingMetadata.ridings} />
 
       <footer className="sourceNotice">
         Comprend des données ouvertes octroyées sous la licence d'utilisation des

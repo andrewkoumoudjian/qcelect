@@ -12,10 +12,12 @@ const percent = new Intl.NumberFormat("fr-CA", {
 
 export function RidingDialog({
   riding,
+  name,
   open,
   onOpenChange,
 }: {
   riding: Riding | null;
+  name: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -81,7 +83,7 @@ export function RidingDialog({
                   </div>
                   <div>
                     <dt>Chef actuel</dt>
-                    <dd>{riding.leaderParty ?? "—"}</dd>
+                    <dd>{riding.leaderParty ?? "–"}</dd>
                   </div>
                 </dl>
 
@@ -95,7 +97,7 @@ export function RidingDialog({
                       <span>
                         P(gagner):{" "}
                         {riding.projection.winProbability === null
-                          ? "—"
+                          ? "–"
                           : `${percent.format(
                               riding.projection.winProbability * 100,
                             )} %`}
@@ -103,7 +105,7 @@ export function RidingDialog({
                       <span>
                         Marge finale projetée:{" "}
                         {riding.projection.projectedMarginPct === null
-                          ? "—"
+                          ? "–"
                           : `${percent.format(
                               riding.projection.projectedMarginPct,
                             )} pt`}
@@ -111,13 +113,34 @@ export function RidingDialog({
                     </>
                   ) : (
                     <span>
-                      Projection non publiée — aucun artifact calibré n&apos;est
-                      encore chargé en production.
+                      Projection non publiée.
                     </span>
                   )}
                 </section>
               </>
-            ) : null}
+            ) : (
+              <>
+                <div className="dialogHeader">
+                  <div>
+                    <p className="statusKicker">En attente des résultats</p>
+                    <Dialog.Title className="dialogTitle">{name}</Dialog.Title>
+                    <Dialog.Description className="dialogDescription">
+                      Aucun résultat officiel reçu pour cette circonscription.
+                    </Dialog.Description>
+                  </div>
+                  <Dialog.Close className="dialogClose" aria-label="Fermer">×</Dialog.Close>
+                </div>
+                <dl className="ridingFacts">
+                  <div><dt>En tête</dt><dd>–</dd></div>
+                  <div><dt>Bureaux</dt><dd>–</dd></div>
+                  <div><dt>Votes valides</dt><dd>–</dd></div>
+                  <div><dt>Participation</dt><dd>–</dd></div>
+                </dl>
+                <section className="projectionPanel" aria-label="Projection statistique">
+                  Modèle : non publié
+                </section>
+              </>
+            )}
           </Dialog.Popup>
         </Dialog.Viewport>
       </Dialog.Portal>

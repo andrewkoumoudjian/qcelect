@@ -8,7 +8,13 @@ import { RidingDialog } from "./RidingDialog";
 const LIVE_API_URL = process.env.NEXT_PUBLIC_LIVE_API_URL ?? "/api/live.json";
 const POLL_MS = 20_000;
 
-type Riding = PublicLiveState["ridings"][number];
+const WAITING_PARTIES = [
+  { abbreviation: "CAQ", name: "Coalition avenir Québec" },
+  { abbreviation: "PLQ", name: "Parti libéral du Québec" },
+  { abbreviation: "PQ", name: "Parti québécois" },
+  { abbreviation: "QS", name: "Québec solidaire" },
+  { abbreviation: "PCOQ", name: "Parti conservateur du Québec" },
+];
 
 const number = new Intl.NumberFormat("fr-CA");
 const percent = new Intl.NumberFormat("fr-CA", {
@@ -57,9 +63,11 @@ function partyRows(state: PublicLiveState) {
   return active.length ? active : ordered.slice(0, 6);
 }
 
-export function LiveResults() {
+export function LiveResults({ ridingMetadata }: {
+  ridingMetadata: readonly { id: number; name: string }[];
+}) {
   const [state, setState] = useState<PublicLiveState | null>(null);
-  const [selectedRiding, setSelectedRiding] = useState<Riding | null>(null);
+  const [selectedRidingId, setSelectedRidingId] = useState<number | null>(null);
   const [connectionError, setConnectionError] = useState(false);
 
   useEffect(() => {
@@ -74,11 +82,7 @@ export function LiveResults() {
         current?.sourceSha256 === next.sourceSha256 ? current : next,
       );
       setConnectionError(false);
-      setSelectedRiding((current) =>
-        current
-          ? (next.ridings.find((riding) => riding.id === current.id) ?? null)
-          : null,
-      );
+
     }
 
     async function poll() {
@@ -141,60 +145,42 @@ export function LiveResults() {
     };
   }, []);
 
-  const parties = useMemo(() => (state ? partyRows(state) : []), [state]);
-
-  if (!state) {
-    return (
-      <section className="liveLoading" aria-live="polite">
-        <div>
-          <p className="statusKicker">Résultats officiels</p>
-          <h2>En attente des données d&apos;Élections Québec</h2>
-          <p>
-            La page s&apos;actualisera automatiquement dès qu&apos;un premier
-            état officiel sera publié.
-          </p>
-        </div>
-        {connectionError ? (
-          <span className="connectionNote">
-            Source qcelect momentanément indisponible
-          </span>
-        ) : null}
-      </section>
-    );
-  }
+  const parties = useMemo(() => state
+    ? partyRows(state).map((party) => ({ abbreviation: party.abbreviation, name: party.name, results: party }))
+    : WAITING_PARTIES.map((party) => ({ ...party, results: null })), [state]);
+  const ridings = state?.ridings ?? ridingMetadata;
+  const selectedRiding = state?.ridings.find((riding) => riding.id === selectedRidingId) ?? null;
+  const selectedName = ridings.find((riding) => riding.id === selectedRidingId)?.name ?? "";
 
   return (
     <>
       <section className="liveStatus" aria-live="polite">
         <div className="sourceStatus">
-          <span className="liveDot" aria-hidden="true" />
-          <strong>Officiel · Élections Québec</strong>
-          <span>Mis à jour à {formatTimestamp(state.sourceUpdatedAt)}</span>
-          <span>
-            {number.format(state.pollsReported)} /{" "}
-            {number.format(state.pollsTotal)} bureaux
-          </span>
-          <span>{percent.format(state.reportingPct)} % dépouillé</span>
+          {state ? (
+            <>
+              <span className="liveDot" aria-hidden="true" />
+              <strong>Officiel · Élections Québec</strong>
+              <span>Mis à jour à {formatTimestamp(state.sourceUpdatedAt)}</span>
+              <span>{number.format(state.pollsReported)} / {number.format(state.pollsTotal)} bureaux</span>
+              <span>{percent.format(state.reportingPct)} % dépouillé</span>
+            </>
+          ) : (
+            <>
+              <strong>En attente du premier résultat officiel</strong>
+              <span>Mise à jour automatique · Élections Québec</span>
+            </>
+          )}
         </div>
         {connectionError ? (
           <span className="connectionNote">
-            Reconnexion en cours · dernière donnée valide conservée
+            {state ? "Reconnexion en cours · dernière donnée valide conservée" : "Reconnexion en cours"}
           </span>
         ) : null}
       </section>
 
-      <section className="majorityBand" aria-label="Seuil de majorité">
-        <strong>64</strong>
-        <span>sièges pour une majorité</span>
-        <span className="modelSeparation">
-          Projections statistiques: non publiées tant qu&apos;aucun artifact
-          calibré n&apos;est validé
-        </span>
-      </section>
-
       <section className="partySummary" aria-label="Sommaire des partis">
         {parties.map((party) => (
-          <article className="partyCard" key={party.id}>
+          <article className="partyCard" key={party.abbreviation}>
             <div className="partyIdentity">
               <span
                 className="partySwatch"
@@ -208,11 +194,11 @@ export function LiveResults() {
             </div>
             <div className="partyMetrics">
               <div>
-                <strong>{party.seatsLeading}</strong>
+                <strong>{party.results?.seatsLeading ?? "–"}</strong>
                 <span>en tête</span>
               </div>
               <div>
-                <strong>{percent.format(party.votePct)} %</strong>
+                <strong>{party.results ? `${percent.format(party.results.votePct)} %` : "–"}</strong>
                 <span>vote</span>
               </div>
             </div>
@@ -220,13 +206,15 @@ export function LiveResults() {
         ))}
       </section>
 
+      <section className="majorityBand" aria-label="Seuil de majorité">
+        <strong>64</strong>
+        <span>sièges pour une majorité</span>
+        <span className="modelSeparation">Modèle : non publié</span>
+      </section>
+
       <ResultsViewTabs
-        state={state}
-        onRidingSelect={(id) => {
-          setSelectedRiding(
-            state.ridings.find((riding) => riding.id === id) ?? null,
-          );
-        }}
+        ridings={state?.ridings ?? []}
+        onRidingSelect={setSelectedRidingId}
       />
 
       <section
@@ -238,7 +226,7 @@ export function LiveResults() {
             <p className="statusKicker">Officiel</p>
             <h2>Circonscriptions</h2>
           </div>
-          <span>{state.ridings.length} sièges</span>
+          <span>{ridings.length} sièges</span>
         </div>
         <div className="tableScroller">
           <table className="ridingTable">
@@ -252,34 +240,35 @@ export function LiveResults() {
               </tr>
             </thead>
             <tbody>
-              {[...state.ridings]
+              {[...ridings]
                 .sort((a, b) => a.name.localeCompare(b.name, "fr"))
                 .map((riding) => {
-                  const leader = riding.candidates[0];
+                  const result = state?.ridings.find((result) => result.id === riding.id);
+                  const leader = result?.candidates[0];
                   return (
                     <tr key={riding.id}>
                       <td>
                         <button
                           className="ridingLink"
                           type="button"
-                          onClick={() => setSelectedRiding(riding)}
+                          onClick={() => setSelectedRidingId(riding.id)}
                         >
                           {riding.name}
                         </button>
                       </td>
-                      <td>{riding.leaderParty ?? "—"}</td>
+                      <td>{result?.leaderParty ?? "–"}</td>
                       <td>
                         {leader && leader.votes > 0
                           ? `${percent.format(leader.votePct)} %`
-                          : "—"}
+                          : "–"}
                       </td>
                       <td>
-                        {riding.pollsReported}/{riding.pollsTotal}
+                        {result ? `${result.pollsReported}/${result.pollsTotal}` : "–"}
                       </td>
                       <td>
-                        {riding.final
+                        {result?.final
                           ? "Final"
-                          : riding.pollsReported > 0
+                          : result && result.pollsReported > 0
                             ? "En cours"
                             : "Aucun résultat"}
                       </td>
@@ -293,9 +282,10 @@ export function LiveResults() {
 
       <RidingDialog
         riding={selectedRiding}
-        open={selectedRiding !== null}
+        name={selectedName}
+        open={selectedRidingId !== null}
         onOpenChange={(open) => {
-          if (!open) setSelectedRiding(null);
+          if (!open) setSelectedRidingId(null);
         }}
       />
     </>

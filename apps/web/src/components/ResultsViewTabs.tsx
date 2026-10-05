@@ -14,20 +14,20 @@ function closeRaceMargin(riding: Riding): number | null {
 }
 
 export function ResultsViewTabs({
-  state,
+  ridings,
   onRidingSelect,
 }: {
-  state: PublicLiveState;
+  ridings: PublicLiveState["ridings"];
   onRidingSelect: (id: number) => void;
 }) {
-  const paint = state.ridings.map((riding) => ({
+  const paint = ridings.map((riding) => ({
     id: riding.id,
     party: riding.leaderParty,
     final: riding.final,
     reportingPct: riding.reportingPct,
   }));
 
-  const closeRaces = state.ridings
+  const closeRaces = ridings
     .map((riding) => ({ riding, margin: closeRaceMargin(riding) }))
     .filter(
       (
@@ -56,19 +56,37 @@ export function ResultsViewTabs({
 
       <Tabs.Panel className="tabPanel" value="geography">
         <div className="geographyLayout">
-          <ElectionMap
-            svgUrl="/maps/quebec.svg"
-            ridings={paint}
-            ariaLabel="Carte des résultats par circonscription"
-            onRidingSelect={onRidingSelect}
-          />
+          <div className="provinceOverview">
+            <div>
+              <h3>Géographie · résultats officiels</h3>
+              <ElectionMap
+                svgUrl="/maps/quebec.svg"
+                ridings={paint}
+                ariaLabel="Carte des résultats par circonscription"
+                onRidingSelect={onRidingSelect}
+              />
+            </div>
+            <div className="seatOverview">
+              <div className="cartogramHeader">
+                <strong>127 sièges</strong>
+                <span className="majorityMarker">Majorité : 64</span>
+              </div>
+              <ElectionMap
+                svgUrl="/maps/cartogram.svg"
+                ridings={paint}
+                ariaLabel="Cartogramme des 127 sièges"
+                onRidingSelect={onRidingSelect}
+              />
+              <p className="mapLegend">Une case par circonscription · gris : aucun résultat</p>
+            </div>
+          </div>
           <div className="insetGrid">
             <div>
-              <h3>Montréal / Laval</h3>
+              <h3>Montréal / Laval · zoom</h3>
               <ElectionMap
                 svgUrl="/maps/montreal.svg"
                 ridings={paint}
-                ariaLabel="Inset Montréal et Laval"
+                ariaLabel="Carte agrandie de Montréal et Laval"
                 onRidingSelect={onRidingSelect}
               />
             </div>

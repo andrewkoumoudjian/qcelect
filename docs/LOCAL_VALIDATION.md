@@ -43,3 +43,11 @@ The first local persistence slice stores complete normalized snapshot documents
 atomically, with immutable official JSON and separate published JSON. Relational
 metadata/projection tables, historical application replay, prior/backtests,
 conformal calibration and deterministic seat scenarios remain unfinished.
+
+The white local UI now renders before the first accepted snapshot. Canonical
+2026 riding metadata supplies the 127-row list; unavailable values stay blank
+and no synthetic official snapshot is created. Geography and the cartogram are
+visible together, with the existing 48-riding Montréal/Laval and 10-riding Québec
+insets. Empty riding dialogs open and close. Local browser verification counted
+all four maps and 127 list rows; all 13 production tests, typechecks and map and
+architecture checks passed. The two existing full-lint errors remain unchanged.

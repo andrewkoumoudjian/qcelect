@@ -110,12 +110,15 @@ def test_transposition_conserves_votes_and_allocates_unmapped_special_votes():
     assert set(result.votes["target_riding"]) == {"101", "102"}
 
 
-def test_2014_geometry_gap_is_explicit_not_silently_substituted():
-    with pytest.raises(KeyError, match="Do not substitute"):
-        section_geometry_url("2014-04-07")
+def test_2014_geometry_uses_pinned_archived_official_dgeq_file():
+    url = section_geometry_url("2014-04-07")
+    assert "web.archive.org/web/20160407203022id_" in url
+    assert "electionsquebec.qc.ca" in url
+    assert "2014-shapefile.zip" in url
 
 
 def test_official_geometry_urls_are_versioned_by_election():
+    assert "2014" in section_geometry_url("2014-04-07")
     assert "2018" in section_geometry_url("2018-10-01")
     assert "2022" in section_geometry_url("2022-10-03")
     assert "2026" in section_geometry_url("2026")

@@ -51,6 +51,9 @@ PARTY_ALIASES = {
     "C.A.Q.-É.F.L.": "CAQ",
     "C.A.Q.-E.F.L.": "CAQ",
     "P.C.Q./C.P.Q.": "PCOQ",
+    "É.A.P. - P.C.Q.": "PCOQ",
+    "E.A.P. - P.C.Q.": "PCOQ",
+    "O.N. - P.I.Q.": "ON",
     "P.V.Q./G.P.Q.": "PVQ",
     "P.M.L.Q.": "PMLQ",
 }
@@ -102,9 +105,23 @@ def _number(value: object) -> float:
 
 def _split_candidate_header(label: str) -> tuple[str, str, str]:
     clean = label.strip()
-    if " " not in clean:
+    tokens = clean.split()
+    if len(tokens) < 2:
         return clean, "", ""
-    candidate, party_raw = clean.rsplit(" ", 1)
+
+    # DGEQ party abbreviations are embedded at the end of the candidate label.
+    # Some 2014 labels are multi-token coalitions such as
+    # "É.A.P. - P.C.Q.", so rsplit(" ", 1) is not sufficient.
+    party_start = next(
+        (index for index, token in enumerate(tokens[1:], start=1) if "." in token),
+        None,
+    )
+    if party_start is None:
+        candidate, party_raw = clean.rsplit(" ", 1)
+    else:
+        candidate = " ".join(tokens[:party_start])
+        party_raw = " ".join(tokens[party_start:])
+
     party_raw = party_raw.strip()
     return candidate.strip(), PARTY_ALIASES.get(party_raw, party_raw), party_raw
 

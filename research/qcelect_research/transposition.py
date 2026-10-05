@@ -513,5 +513,41 @@ def load_geometry_zip(path: str | Path) -> gpd.GeoDataFrame:
     return gpd.read_file(f"zip://{Path(path).resolve()}")
 
 
-def load_target_2026() -> gpd.GeoDataFrame:
-    return gpd.read_file(TARGET_2026_GEOJSON_URL)
+def download_target_2026(
+    cache_dir: str | Path,
+    *,
+    refresh: bool = False,
+) -> Path:
+    cache = Path(cache_dir)
+    cache.mkdir(parents=True, exist_ok=True)
+    target = cache / "ridings-2026.geojson"
+    if target.exists() and not refresh:
+        return target
+
+    request = urllib.request.Request(
+        TARGET_2026_GEOJSON_URL,
+        headers={
+            "Accept": "application/geo+json, application/json",
+            "User-Agent": "qcelect-research/1.0 (+https://github.com/andrewkoumoudjian/qcelect)",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=120) as response:
+        body = response.read()
+
+    # Parse through GeoPandas before replacing the cache entry.
+    temporary = target.with_suffix(".tmp")
+    temporary.write_bytes(body)
+    test = gpd.read_file(temporary)
+    if len(test) != 127:
+        temporary.unlink(missing_ok=True)
+        raise ValueError(
+            f"expected 127 target ridings in 2026 GeoJSON, received {len(test)}"
+        )
+    temporary.replace(target)
+    return target
+
+
+def load_target_2026(path: str | Path | None = None) -> gpd.GeoDataFrame:
+    if path is None:
+        return gpd.read_file(TARGET_2026_GEOJSON_URL)
+    return gpd.read_file(path)

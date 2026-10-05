@@ -265,20 +265,38 @@ def parse_modern_riding_csv(
 
 def _validate_poll_uniqueness(frame: pd.DataFrame) -> None:
     regular = frame[~frame["is_special_vote"]].copy()
-    poll_rows = regular[
+
+    # In long format a polling-section ID legitimately repeats once per
+    # candidate. A repeated candidate within the same poll means the poll row
+    # itself was ingested more than once.
+    candidate_keys = [
+        "election",
+        "riding_code",
+        "polling_section",
+        "candidate",
+    ]
+    duplicate_candidates = regular.duplicated(candidate_keys, keep=False)
+    if duplicate_candidates.any():
+        sample = regular.loc[duplicate_candidates, candidate_keys].head()
+        raise ValueError(
+            "duplicated polling-section candidate rows within election/riding: "
+            f"{sample.to_dict(orient='records')}"
+        )
+
+    # The same polling-section ID must not be sourced from two different
+    # per-riding files either.
+    poll_sources = regular[
         ["election", "riding_code", "polling_section", "source_file"]
     ].drop_duplicates()
-
-    duplicates = poll_rows.duplicated(
-        ["election", "riding_code", "polling_section"], keep=False
-    )
-    if duplicates.any():
-        sample = poll_rows.loc[
-            duplicates, ["election", "riding_code", "polling_section"]
-        ].head()
+    source_counts = poll_sources.groupby(
+        ["election", "riding_code", "polling_section"], dropna=False
+    )["source_file"].nunique()
+    duplicates = source_counts[source_counts > 1]
+    if not duplicates.empty:
+        sample = duplicates.head().index.tolist()
         raise ValueError(
             "duplicated polling-section IDs within election/riding: "
-            f"{sample.to_dict(orient='records')}"
+            f"{sample}"
         )
 
 

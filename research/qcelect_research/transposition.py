@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import io
 import math
+import re
 import urllib.request
 import zipfile
 from dataclasses import dataclass
@@ -109,27 +110,26 @@ def normalize_section_geometry(
     if frame.crs is None:
         raise ValueError("section geometry is missing a CRS")
 
-    riding = riding_field or _field(
-        frame, ("CO_CEP_VG", "CO_CEP", "CODE_CEP", "CODE")
-    )
-    polling = polling_field or _field(
-        frame, ("NO_SV_VG", "NO_SV", "S.V.", "SV")
-    )
+    riding = riding_field or _field(frame, ("CO_CEP_VG", "CO_CEP", "CODE_CEP", "CODE"))
+    polling = polling_field or _field(frame, ("NO_SV_VG", "NO_SV", "S.V.", "SV"))
 
     output = frame[[riding, polling, "geometry"]].copy()
     output["source_riding"] = output[riding].map(_key)
     output["polling_section"] = output[polling].map(_key)
-    output = output[
+    usable = (
         output.geometry.notna()
         & ~output.geometry.is_empty
         & (output["source_riding"] != "")
         & (output["polling_section"] != "")
-    ].copy()
+    )
+    if not usable.all():
+        raise ValueError(
+            f"section geometry contains {int((~usable).sum())} missing geometries or keys"
+        )
+    output.geometry = output.geometry.make_valid()
 
     # A logical section can be represented by more than one polygon part.
-    output = output.dissolve(
-        by=["source_riding", "polling_section"], as_index=False
-    )
+    output = output.dissolve(by=["source_riding", "polling_section"], as_index=False)
     return output[["source_riding", "polling_section", "geometry"]]
 
 
@@ -198,9 +198,7 @@ def build_section_crosswalk(
 
     # Normalize tiny shoreline/topology losses. The raw coverage is retained in
     # diagnostics so meaningful gaps cannot disappear silently.
-    intersections["weight"] = (
-        intersections["raw_weight"] / intersections["coverage"]
-    )
+    intersections["weight"] = intersections["raw_weight"] / intersections["coverage"]
 
     crosswalk = intersections[
         [
@@ -219,12 +217,22 @@ def build_section_crosswalk(
     unmapped = unmapped[unmapped["_merge"] == "left_only"]
 
     diagnostics = {
+        "source_crs": str(source_sections.crs),
+        "target_crs": str(target_ridings.crs),
+        "overlay_crs": AREA_CRS,
+        "source_invalid_geometry_count": int(
+            (~source_sections.geometry.is_valid).sum()
+        ),
         "source_section_count": int(len(source_keys)),
         "mapped_section_count": int(len(mapped_keys)),
         "unmapped_geometry_section_count": int(len(unmapped)),
+        "unmapped_geometry_sections": unmapped[keys].to_dict(orient="records"),
         "raw_coverage_min": float(coverage["coverage"].min()),
         "raw_coverage_median": float(coverage["coverage"].median()),
         "raw_coverage_below_0_99": int((coverage["coverage"] < 0.99).sum()),
+        "low_coverage_sections": coverage.loc[coverage["coverage"] < 0.99].to_dict(
+            orient="records"
+        ),
         "split_section_count": int(
             (crosswalk.groupby(keys)["target_riding"].nunique() > 1).sum()
         ),
@@ -279,6 +287,7 @@ def _riding_destination_weights(
             [
                 "riding_code",
                 "polling_section",
+                "geometry_section",
                 "registered_electors",
                 "is_special_vote",
             ]
@@ -292,7 +301,7 @@ def _riding_destination_weights(
 
     mapped = poll_meta.merge(
         crosswalk,
-        on=["source_riding", "polling_section"],
+        on=["source_riding", "geometry_section"],
         how="inner",
         validate="many_to_many",
     )
@@ -315,9 +324,9 @@ def _riding_destination_weights(
         .sum()
         .rename(columns={"elector_mass": "mass"})
     )
-    shares["riding_weight"] = shares["mass"] / shares.groupby(
-        "source_riding"
-    )["mass"].transform("sum")
+    shares["riding_weight"] = shares["mass"] / shares.groupby("source_riding")[
+        "mass"
+    ].transform("sum")
     return shares[["source_riding", "target_riding", "riding_weight"]]
 
 
@@ -340,11 +349,29 @@ def transpose_results(
     work["source_riding"] = work["riding_code"].map(_key)
     work["polling_section"] = work["polling_section"].map(_key)
 
+    geometry_keys = set(zip(crosswalk["source_riding"], crosswalk["polling_section"]))
+
+    def geometry_key(riding: str, poll: str) -> str:
+        if (riding, poll) in geometry_keys:
+            return poll
+        # DGEQ divides some bureaus into A/B records without dividing the
+        # geographic section. Keep original bureau keys for vote accounting.
+        match = re.fullmatch(r"(\d+)[A-Z]", poll)
+        if match and (riding, match[1]) in geometry_keys:
+            return match[1]
+        return poll
+
+    work["geometry_section"] = [
+        geometry_key(riding, poll)
+        for riding, poll in zip(
+            work["source_riding"], work["polling_section"], strict=True
+        )
+    ]
+    crosswalk = crosswalk.rename(columns={"polling_section": "geometry_section"})
+
     joined = work.merge(
-        crosswalk[
-            ["source_riding", "polling_section", "target_riding", "weight"]
-        ],
-        on=["source_riding", "polling_section"],
+        crosswalk[["source_riding", "geometry_section", "target_riding", "weight"]],
+        on=["source_riding", "geometry_section"],
         how="left",
         validate="many_to_many",
     )
@@ -435,15 +462,13 @@ def transpose_results(
         .reset_index(drop=True)
     )
 
-    source_party = (
-        work.groupby("party", dropna=False)["votes"].sum().sort_index()
+    source_party = work.groupby("party", dropna=False)["votes"].sum().sort_index()
+    target_party = output.groupby("party", dropna=False)["votes"].sum().sort_index()
+    party_check = (
+        source_party.to_frame("source")
+        .join(target_party.to_frame("target"), how="outer")
+        .fillna(0)
     )
-    target_party = (
-        output.groupby("party", dropna=False)["votes"].sum().sort_index()
-    )
-    party_check = source_party.to_frame("source").join(
-        target_party.to_frame("target"), how="outer"
-    ).fillna(0)
     party_check["difference"] = party_check["target"] - party_check["source"]
 
     source_total = int(work["votes"].sum())
@@ -452,8 +477,8 @@ def transpose_results(
         raise ValueError("transposition failed exact vote-conservation checks")
 
     matched_original = work.merge(
-        crosswalk[["source_riding", "polling_section"]].drop_duplicates(),
-        on=["source_riding", "polling_section"],
+        crosswalk[["source_riding", "geometry_section"]].drop_duplicates(),
+        on=["source_riding", "geometry_section"],
         how="inner",
     )
     matched_votes = int(matched_original["votes"].sum())
@@ -467,8 +492,22 @@ def transpose_results(
         "geocoded_vote_share": (
             matched_votes / source_total if source_total > 0 else 0.0
         ),
+        "suffixed_bureau_count": int(
+            work.loc[
+                work["geometry_section"] != work["polling_section"],
+                ["source_riding", "polling_section"],
+            ]
+            .drop_duplicates()
+            .shape[0]
+        ),
         "unmatched_result_rows": int(len(unmatched)),
         "unmatched_result_votes": int(unmatched["votes"].sum()),
+        "unmatched_sections": unmatched.groupby(
+            ["source_riding", "polling_section", "is_special_vote"], dropna=False
+        )["votes"]
+        .sum()
+        .reset_index()
+        .to_dict(orient="records"),
         "party_vote_check": party_check.reset_index().to_dict(orient="records"),
         "allocation_methods": {
             method: int(votes)
@@ -478,7 +517,7 @@ def transpose_results(
 
     return TranspositionResult(
         votes=output,
-        crosswalk=crosswalk,
+        crosswalk=crosswalk.rename(columns={"geometry_section": "polling_section"}),
         diagnostics=diagnostics,
     )
 
@@ -517,7 +556,13 @@ def download_geometry(
 
 
 def load_geometry_zip(path: str | Path) -> gpd.GeoDataFrame:
-    return gpd.read_file(f"zip://{Path(path).resolve()}")
+    with zipfile.ZipFile(path) as archive:
+        shapefiles = [
+            name for name in archive.namelist() if name.lower().endswith(".shp")
+        ]
+    if len(shapefiles) != 1:
+        raise ValueError(f"expected one section shapefile, received {shapefiles}")
+    return gpd.read_file(f"/vsizip/{Path(path).resolve()}/{shapefiles[0]}")
 
 
 def download_target_2026(

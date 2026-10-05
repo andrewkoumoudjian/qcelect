@@ -59,3 +59,14 @@ Diagnostics include:
 
 The output is therefore suitable for model inputs only after these diagnostics
 have been reviewed for the full province.
+
+The archived 2014 ZIP contains a nested shapefile, selected explicitly. Its
+`CO_CEP`/`NO_SV` fields normalize directly; its CRS identifies as EPSG:3798.
+Invalid source polygons are repaired with `make_valid` before dissolving and
+the original invalid count is recorded. Empty geometry or keys fail validation.
+Suffixed result bureaus (e.g. 99A/99B) share section 99's geometry when that key
+exists, while keeping distinct original keys through vote allocation.
+
+Full diagnostics now list every unmapped geometry section, low-coverage section
+and unmatched result section with its votes. The 2026 target geometry must match
+all 127 IDs in the production riding manifest.

@@ -63,6 +63,14 @@ def _decode_bytes(raw: bytes) -> str:
 
 
 def _rows_from_text(text: str) -> list[list[str]]:
+    # Summary/footer records have different widths and can defeat Sniffer.
+    # Prefer the declared DGEQ header, including files with metadata prefixes.
+    for line in text.splitlines()[:25]:
+        for delimiter in (",", ";", "\t"):
+            fields = next(csv.reader([line], delimiter=delimiter))
+            first = fields[0].strip().rstrip(":").lower() if fields else ""
+            if first in {"code", "header"} and "S.V." in fields:
+                return list(csv.reader(io.StringIO(text), delimiter=delimiter))
     sample = text[:8192]
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=",;\t")
@@ -108,10 +116,7 @@ def _parse_modern(rows: list[list[str]]) -> pd.DataFrame:
 
     # 2014 exports commonly end the header and data records with a trailing
     # comma. Strip it before measuring width or every valid row is shifted.
-    headers = [
-        column.strip()
-        for column in _strip_trailing_garbage(header_row[1:])
-    ]
+    headers = [column.strip() for column in _strip_trailing_garbage(header_row[1:])]
     width = len(headers)
     records: list[list[str]] = []
 
@@ -177,9 +182,7 @@ def _parse_legacy(rows: list[list[str]]) -> pd.DataFrame:
         municipality, code, sv, electors = row[:4]
         candidate_votes = row[4 : 4 + len(candidates)]
         bv, br = row[-2:]
-        records.append(
-            [municipality, code, sv, electors, *candidate_votes, bv, br]
-        )
+        records.append([municipality, code, sv, electors, *candidate_votes, bv, br])
 
     columns = [
         "Municipalité",
@@ -226,9 +229,7 @@ def normalize_numeric(
 
     # A row with missing/zero electors can still contain real special-category
     # votes. Keep it, but its turnout must remain unknown rather than inf.
-    result = result[
-        result["B.V."].notna() & (result["B.V."] >= 0)
-    ].copy()
+    result = result[result["B.V."].notna() & (result["B.V."] >= 0)].copy()
     result["turnout"] = np.where(
         result["É.I."].notna() & (result["É.I."] > 0),
         result["B.V."] / result["É.I."],

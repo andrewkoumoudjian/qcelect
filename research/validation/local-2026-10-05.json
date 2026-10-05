@@ -1,0 +1,447 @@
+{
+  "started_at": "2026-10-05T23:43:42.943003+00:00",
+  "completed_at": "2026-10-05T23:46:23.277319+00:00",
+  "command": "pnpm research:validate",
+  "target_riding_count": 127,
+  "elections": {
+    "2014-04-07": {
+      "archive_url": "https://donnees.electionsquebec.qc.ca/production/provincial/resultats/archives/gen2014-04-07/resultats-bureau-vote.zip",
+      "archive_sha256": "a682194c0eae43f4955aad0facfa112fb5103e3cd7c4349b60fcd097e62537f6",
+      "source_file_count": 125,
+      "regular_poll_count": 18657,
+      "special_poll_count": 3162,
+      "merged_poll_count": 1094,
+      "source_geometry_url": "https://web.archive.org/web/20160407203022id_/http://www.electionsquebec.qc.ca/documents/zip/sections%20de-vote-elections-2014-shapefile.zip",
+      "source_geometry_sha256": "89be9c5972a139d410a4d5a91be72985ea27016a5b243f87039c4eccb42bd002",
+      "target_geometry_sha256": "dd164f0ad5ff7e9f5366f26696d78b9c562ceb88b3a5ad664c22a8e158843677",
+      "source_invalid_geometry_count": 37,
+      "source_section_count": 18144,
+      "mapped_section_count": 18134,
+      "unmapped_geometry_section_count": 10,
+      "raw_coverage_below_0_99": 1276,
+      "split_section_count": 2772,
+      "suffixed_bureau_count": 1091,
+      "source_total_votes": 4232262,
+      "target_total_votes": 4232262,
+      "vote_difference": 0,
+      "geocoded_vote_share": 0.7285449246762133,
+      "unmatched_result_votes": 1148869,
+      "party_vote_check": [
+        {
+          "party": "B.P.",
+          "source": 2690,
+          "target": 2690,
+          "difference": 0
+        },
+        {
+          "party": "CAQ",
+          "source": 975607,
+          "target": 975607,
+          "difference": 0
+        },
+        {
+          "party": "Ind",
+          "source": 15361,
+          "target": 15361,
+          "difference": 0
+        },
+        {
+          "party": "M.P.Q.",
+          "source": 521,
+          "target": 521,
+          "difference": 0
+        },
+        {
+          "party": "ON",
+          "source": 30697,
+          "target": 30697,
+          "difference": 0
+        },
+        {
+          "party": "P.I.",
+          "source": 126,
+          "target": 126,
+          "difference": 0
+        },
+        {
+          "party": "P.N.",
+          "source": 7539,
+          "target": 7539,
+          "difference": 0
+        },
+        {
+          "party": "P.S.P.",
+          "source": 1291,
+          "target": 1291,
+          "difference": 0
+        },
+        {
+          "party": "P.U.N.",
+          "source": 241,
+          "target": 241,
+          "difference": 0
+        },
+        {
+          "party": "P.Éq.",
+          "source": 1645,
+          "target": 1645,
+          "difference": 0
+        },
+        {
+          "party": "PCOQ",
+          "source": 16429,
+          "target": 16429,
+          "difference": 0
+        },
+        {
+          "party": "PLQ",
+          "source": 1757071,
+          "target": 1757071,
+          "difference": 0
+        },
+        {
+          "party": "PMLQ",
+          "source": 2016,
+          "target": 2016,
+          "difference": 0
+        },
+        {
+          "party": "PQ",
+          "source": 1074120,
+          "target": 1074120,
+          "difference": 0
+        },
+        {
+          "party": "PVQ",
+          "source": 23163,
+          "target": 23163,
+          "difference": 0
+        },
+        {
+          "party": "Q.R.D.",
+          "source": 163,
+          "target": 163,
+          "difference": 0
+        },
+        {
+          "party": "QS",
+          "source": 323124,
+          "target": 323124,
+          "difference": 0
+        },
+        {
+          "party": "U.C.Q./Q.C.U.",
+          "source": 58,
+          "target": 58,
+          "difference": 0
+        },
+        {
+          "party": "É.A.",
+          "source": 400,
+          "target": 400,
+          "difference": 0
+        }
+      ],
+      "ordinary_unmapped_votes": 1128
+    },
+    "2018-10-01": {
+      "archive_url": "https://donnees.electionsquebec.qc.ca/production/provincial/resultats/archives/gen2018-10-01/resultats-bureau-vote.zip",
+      "archive_sha256": "c3635b48d370e53df953b3e954ce49c3c639d7cceaadc91da664fbc0d37a0493",
+      "source_file_count": 125,
+      "regular_poll_count": 17604,
+      "special_poll_count": 3450,
+      "merged_poll_count": 1163,
+      "source_geometry_url": "https://donnees.electionsquebec.qc.ca/autres/provincial/sections_vote_2018_shapefile.zip",
+      "source_geometry_sha256": "58c437b77cf50d9fafeb6464042b27902b13252ff9ce50a301390f6d05fbd10f",
+      "target_geometry_sha256": "dd164f0ad5ff7e9f5366f26696d78b9c562ceb88b3a5ad664c22a8e158843677",
+      "source_invalid_geometry_count": 26,
+      "source_section_count": 17349,
+      "mapped_section_count": 17339,
+      "unmapped_geometry_section_count": 10,
+      "raw_coverage_below_0_99": 1225,
+      "split_section_count": 2783,
+      "suffixed_bureau_count": 598,
+      "source_total_votes": 4033538,
+      "target_total_votes": 4033538,
+      "vote_difference": 0,
+      "geocoded_vote_share": 0.7267488244811379,
+      "unmatched_result_votes": 1102169,
+      "party_vote_check": [
+        {
+          "party": "A.P.Q.",
+          "source": 521,
+          "target": 521,
+          "difference": 0
+        },
+        {
+          "party": "B.P.",
+          "source": 4657,
+          "target": 4657,
+          "difference": 0
+        },
+        {
+          "party": "C.I.N.Q.",
+          "source": 693,
+          "target": 693,
+          "difference": 0
+        },
+        {
+          "party": "C.P.Q.",
+          "source": 13768,
+          "target": 13768,
+          "difference": 0
+        },
+        {
+          "party": "CAQ",
+          "source": 1509455,
+          "target": 1509455,
+          "difference": 0
+        },
+        {
+          "party": "Ind",
+          "source": 6462,
+          "target": 6462,
+          "difference": 0
+        },
+        {
+          "party": "N.P.D.Q.",
+          "source": 22863,
+          "target": 22863,
+          "difference": 0
+        },
+        {
+          "party": "P.Cu.Q.",
+          "source": 169,
+          "target": 169,
+          "difference": 0
+        },
+        {
+          "party": "P.L.",
+          "source": 1678,
+          "target": 1678,
+          "difference": 0
+        },
+        {
+          "party": "P.N.",
+          "source": 3659,
+          "target": 3659,
+          "difference": 0
+        },
+        {
+          "party": "P51",
+          "source": 1117,
+          "target": 1117,
+          "difference": 0
+        },
+        {
+          "party": "PCOQ",
+          "source": 59055,
+          "target": 59055,
+          "difference": 0
+        },
+        {
+          "party": "PLQ",
+          "source": 1001037,
+          "target": 1001037,
+          "difference": 0
+        },
+        {
+          "party": "PMLQ",
+          "source": 1708,
+          "target": 1708,
+          "difference": 0
+        },
+        {
+          "party": "PQ",
+          "source": 687995,
+          "target": 687995,
+          "difference": 0
+        },
+        {
+          "party": "PVQ",
+          "source": 67870,
+          "target": 67870,
+          "difference": 0
+        },
+        {
+          "party": "QS",
+          "source": 649503,
+          "target": 649503,
+          "difference": 0
+        },
+        {
+          "party": "V.P.",
+          "source": 190,
+          "target": 190,
+          "difference": 0
+        },
+        {
+          "party": "É.A.",
+          "source": 1138,
+          "target": 1138,
+          "difference": 0
+        }
+      ],
+      "ordinary_unmapped_votes": 1152
+    },
+    "2022-10-03": {
+      "archive_url": "https://donnees.electionsquebec.qc.ca/production/provincial/resultats/archives/gen2022-10-03/resultats-bureau-vote.zip",
+      "archive_sha256": "a3a7400acdd123d8f22301ebb9ff7cf10f54d9f1e4195cd515041fe2efc84b9f",
+      "source_file_count": 125,
+      "regular_poll_count": 18119,
+      "special_poll_count": 3646,
+      "merged_poll_count": 1264,
+      "source_geometry_url": "https://donnees.electionsquebec.qc.ca/autres/provincial/sections_vote_2022_shapefile.zip",
+      "source_geometry_sha256": "c40de9b9d6e490219909d64b6baf4d80b8de39c446bef1276554a7c9a202f867",
+      "target_geometry_sha256": "dd164f0ad5ff7e9f5366f26696d78b9c562ceb88b3a5ad664c22a8e158843677",
+      "source_invalid_geometry_count": 25,
+      "source_section_count": 17745,
+      "mapped_section_count": 17736,
+      "unmapped_geometry_section_count": 9,
+      "raw_coverage_below_0_99": 1241,
+      "split_section_count": 2822,
+      "suffixed_bureau_count": 835,
+      "source_total_votes": 4112821,
+      "target_total_votes": 4112821,
+      "vote_difference": 0,
+      "geocoded_vote_share": 0.6242374759319698,
+      "unmatched_result_votes": 1545444,
+      "party_vote_check": [
+        {
+          "party": "A.F.C.",
+          "source": 148,
+          "target": 148,
+          "difference": 0
+        },
+        {
+          "party": "B.M.-E.B.H.",
+          "source": 7774,
+          "target": 7774,
+          "difference": 0
+        },
+        {
+          "party": "C.Q.",
+          "source": 8644,
+          "target": 8644,
+          "difference": 0
+        },
+        {
+          "party": "CAQ",
+          "source": 1685573,
+          "target": 1685573,
+          "difference": 0
+        },
+        {
+          "party": "D.D.",
+          "source": 2421,
+          "target": 2421,
+          "difference": 0
+        },
+        {
+          "party": "E.A.",
+          "source": 556,
+          "target": 556,
+          "difference": 0
+        },
+        {
+          "party": "Ind",
+          "source": 2121,
+          "target": 2121,
+          "difference": 0
+        },
+        {
+          "party": "P.A.P.E.",
+          "source": 70,
+          "target": 70,
+          "difference": 0
+        },
+        {
+          "party": "P.Cu.Q.",
+          "source": 356,
+          "target": 356,
+          "difference": 0
+        },
+        {
+          "party": "P.H.Q.",
+          "source": 262,
+          "target": 262,
+          "difference": 0
+        },
+        {
+          "party": "P.Li.Q.",
+          "source": 116,
+          "target": 116,
+          "difference": 0
+        },
+        {
+          "party": "P.N.",
+          "source": 1074,
+          "target": 1074,
+          "difference": 0
+        },
+        {
+          "party": "P51",
+          "source": 689,
+          "target": 689,
+          "difference": 0
+        },
+        {
+          "party": "PCANQ",
+          "source": 12981,
+          "target": 12981,
+          "difference": 0
+        },
+        {
+          "party": "PCOQ",
+          "source": 530786,
+          "target": 530786,
+          "difference": 0
+        },
+        {
+          "party": "PLQ",
+          "source": 591077,
+          "target": 591077,
+          "difference": 0
+        },
+        {
+          "party": "PMLQ",
+          "source": 675,
+          "target": 675,
+          "difference": 0
+        },
+        {
+          "party": "PQ",
+          "source": 600708,
+          "target": 600708,
+          "difference": 0
+        },
+        {
+          "party": "PVQ",
+          "source": 31054,
+          "target": 31054,
+          "difference": 0
+        },
+        {
+          "party": "QS",
+          "source": 634535,
+          "target": 634535,
+          "difference": 0
+        },
+        {
+          "party": "U.F.F.",
+          "source": 1042,
+          "target": 1042,
+          "difference": 0
+        },
+        {
+          "party": "U.N.",
+          "source": 159,
+          "target": 159,
+          "difference": 0
+        }
+      ],
+      "ordinary_unmapped_votes": 748
+    }
+  },
+  "research_code_sha256": "d291a2ddf11038522f55fde6a316ff6d31417b222a70472447439836a1616432"
+}

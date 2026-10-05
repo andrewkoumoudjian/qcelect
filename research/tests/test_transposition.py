@@ -3,12 +3,15 @@ from __future__ import annotations
 import geopandas as gpd
 import pandas as pd
 import pytest
+import zipfile
 from shapely.geometry import box
 
 from qcelect_research.transposition import (
     build_section_crosswalk,
     section_geometry_url,
     transpose_results,
+    load_geometry_zip,
+    normalize_section_geometry,
 )
 
 
@@ -95,9 +98,7 @@ def test_crosswalk_uses_containment_then_area_overlap():
 
 
 def test_transposition_conserves_votes_and_allocates_unmapped_special_votes():
-    result = transpose_results(
-        _results(), _source_sections(), _target_ridings()
-    )
+    result = transpose_results(_results(), _source_sections(), _target_ridings())
 
     assert result.diagnostics["source_total_votes"] == 210
     assert result.diagnostics["target_total_votes"] == 210
@@ -122,3 +123,39 @@ def test_official_geometry_urls_are_versioned_by_election():
     assert "2018" in section_geometry_url("2018-10-01")
     assert "2022" in section_geometry_url("2022-10-03")
     assert "2026" in section_geometry_url("2026")
+
+
+def test_nested_archived_2014_shapefile_loads_and_normalizes(tmp_path):
+    source = _source_sections().rename(
+        columns={"CO_CEP_VG": "CO_CEP", "NO_SV_VG": "NO_SV"}
+    )
+    directory = tmp_path / "source"
+    directory.mkdir()
+    source.to_file(directory / "Sections 2014.shp")
+    archive_path = tmp_path / "sections.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        for path in directory.iterdir():
+            archive.write(
+                path, f"Sections de vote élections 2014-shapefile/{path.name}"
+            )
+    loaded = normalize_section_geometry(load_geometry_zip(archive_path))
+    assert loaded["polling_section"].tolist() == ["1", "2"]
+    assert loaded.crs == source.crs
+
+
+def test_suffixed_bureaus_share_geometry_without_losing_or_combining_votes():
+    rows = _results()
+    rows.loc[rows.polling_section == "1", "polling_section"] = "1A"
+    second = rows[rows.polling_section == "1A"].copy()
+    second["polling_section"] = "1B"
+    second["votes"] = 1
+    rows = pd.concat([rows, second], ignore_index=True)
+    result = transpose_results(rows, _source_sections(), _target_ridings())
+    assert result.diagnostics["source_total_votes"] == 212
+    assert result.diagnostics["target_total_votes"] == 212
+    assert result.diagnostics["suffixed_bureau_count"] == 2
+    assert result.diagnostics["unmatched_result_votes"] == 10
+    assert (
+        result.votes.groupby("party")["votes"].sum().to_dict()
+        == rows.groupby("party")["votes"].sum().to_dict()
+    )

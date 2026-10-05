@@ -15,6 +15,18 @@ The research package carries the expensive, falsifiable work needed to create pr
 
 ## Historical results
 
+From the repository root, `pnpm research:validate` runs the complete official
+2014/2018/2022 ingestion and all three transpositions with uv. `pnpm research:test`
+runs the small regression suite. The full archive path requires exactly 125
+source riding files/IDs for each election, including the four XLSX files in the
+2018 ZIP and the three exceptional 2022 filenames.
+
+Named advance/special voting categories have explicit synthetic section keys;
+they never collapse into a blank key. Declared riding candidate totals are
+reconciled against parsed votes and excluded from the long table. The parser
+preserves same-named candidates with different parties and uses election-specific
+party aliases where Élections Québec reused an abbreviation.
+
 `python scripts/build_historical.py` reproducibly downloads the official
 Élections Québec polling-station archives for 2014, 2018 and 2022, parses every
 riding CSV, validates candidate-vote reconciliation and polling-section

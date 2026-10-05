@@ -8,8 +8,10 @@ canonical long table suitable for boundary transposition and historical replay.
 from __future__ import annotations
 
 import hashlib
+import csv
 import io
 import json
+import math
 import re
 import urllib.request
 import zipfile
@@ -19,6 +21,7 @@ from typing import Iterable
 
 import numpy as np
 import pandas as pd
+from openpyxl import load_workbook
 
 from .elections_quebec import (
     GENERAL_ELECTION_ARCHIVES,
@@ -63,7 +66,12 @@ PARTY_ALIASES = {
     "O.N. - P.I.Q.": "ON",
     "P.V.Q./G.P.Q.": "PVQ",
     "P.M.L.Q.": "PMLQ",
+    "P.C.Q-E.E.D.": "PCOQ",
 }
+
+# The Canadian Party reused a conservative abbreviation in 2022. Party
+# identity must follow the election-specific source, not punctuation alone.
+ELECTION_PARTY_ALIASES = {"2022-10-03": {"P.C.Q./C.P.Q": "PCANQ"}}
 
 CANONICAL_COLUMNS = [
     "election",
@@ -107,11 +115,18 @@ def _clean_identifier(value: object) -> str:
 
 
 def _number(value: object) -> float:
-    parsed = pd.to_numeric(pd.Series([value]), errors="coerce").iloc[0]
-    return float(parsed) if pd.notna(parsed) else float("nan")
+    if str(value).strip().lower() in {"", "nan"}:
+        return float("nan")
+    try:
+        parsed = float(str(value).strip())
+    except ValueError as exc:
+        raise ValueError(f"invalid official vote/elector count: {value!r}") from exc
+    if not math.isfinite(parsed) or parsed < 0 or not parsed.is_integer():
+        raise ValueError(f"invalid official vote/elector count: {value!r}")
+    return parsed
 
 
-def _split_candidate_header(label: str) -> tuple[str, str, str]:
+def _split_candidate_header(label: str, election_date: str) -> tuple[str, str, str]:
     clean = label.strip()
     tokens = clean.split()
     if len(tokens) < 2:
@@ -120,21 +135,27 @@ def _split_candidate_header(label: str) -> tuple[str, str, str]:
     # DGEQ party abbreviations are embedded at the end of the candidate label.
     # Some 2014 labels are multi-token coalitions such as
     # "É.A.P. - P.C.Q.", so rsplit(" ", 1) is not sufficient.
-    party_start = next(
-        (index for index, token in enumerate(tokens[1:], start=1) if "." in token),
+    aliases = {**PARTY_ALIASES, **ELECTION_PARTY_ALIASES.get(election_date, {})}
+    party_raw = next(
+        (
+            alias
+            for alias in sorted(aliases, key=len, reverse=True)
+            if clean.endswith(f" {alias}")
+        ),
         None,
     )
-    if party_start is None:
+    if party_raw is None:
         candidate, party_raw = clean.rsplit(" ", 1)
     else:
-        candidate = " ".join(tokens[:party_start])
-        party_raw = " ".join(tokens[party_start:])
+        candidate = clean[: -(len(party_raw) + 1)]
 
     party_raw = party_raw.strip()
-    return candidate.strip(), PARTY_ALIASES.get(party_raw, party_raw), party_raw
+    return candidate.strip(), aliases.get(party_raw, party_raw), party_raw
 
 
-def _header_and_records(raw: bytes) -> tuple[list[str], list[list[str]]]:
+def _header_and_records(
+    raw: bytes, *, election_date: str = "", source_file: str = ""
+) -> tuple[list[str], list[list[str]]]:
     rows = _rows_from_text(_decode_bytes(raw))
     if len(rows) < 2:
         raise ValueError("DGEQ file has fewer than two rows")
@@ -150,17 +171,22 @@ def _header_and_records(raw: bytes) -> tuple[list[str], list[list[str]]]:
 
     if header_index is not None:
         headers = [
-            value.strip()
-            for value in _strip_trailing_garbage(rows[header_index][1:])
+            value.strip() for value in _strip_trailing_garbage(rows[header_index][1:])
         ]
         record_start = header_index + 1
     else:
         # The current official 2014 archive differs from the later 2018/2022
         # exports and from older copied research files: each riding CSV starts
         # directly with the named header row, with no Election:/Header: prefix.
-        direct_headers = [
-            value.strip() for value in _strip_trailing_garbage(rows[0])
-        ]
+        direct_headers = [value.strip() for value in _strip_trailing_garbage(rows[0])]
+        if (
+            election_date == "2022-10-03"
+            and PurePosixPath(source_file).name.lower()
+            == "dge-80.10_acadie_sans_se.csv"
+            and direct_headers[0] == "S"
+        ):
+            # The official Acadie 2022 CSV labels its riding-code column S.
+            direct_headers[0] = "Code"
         structural = {"Code", "Circonscription", "S.V.", "É.I.", "B.V.", "B.R."}
         if not structural.issubset(direct_headers):
             sample = [row[:5] for row in rows[:8]]
@@ -210,7 +236,9 @@ def parse_modern_riding_csv(
     if election_date not in MODERN_ELECTIONS:
         raise ValueError(f"{election_date} is not a supported modern election")
 
-    headers, records = _header_and_records(raw)
+    headers, records = _header_and_records(
+        raw, election_date=election_date, source_file=source_file
+    )
     required = {
         "Code",
         "Circonscription",
@@ -230,25 +258,45 @@ def parse_modern_riding_csv(
         raise ValueError("no candidate columns between É.I. and B.V.")
 
     candidate_columns = headers[electors_index + 1 : valid_index]
-    parsed_candidates = [_split_candidate_header(label) for label in candidate_columns]
+    parsed_candidates = [
+        _split_candidate_header(label, election_date) for label in candidate_columns
+    ]
     if any(not party_raw for _, _, party_raw in parsed_candidates):
         raise ValueError("candidate header missing party suffix")
 
     output: list[dict[str, object]] = []
+    declared_totals: list[list[int]] = []
 
     for record in records:
         row = dict(zip(headers, record, strict=True))
         is_special = _contains_marker(record, SPECIAL_VOTE_MARKERS)
         polling_section = _clean_identifier(row["S.V."])
+        municipality = str(row["Nom des Municipalités"]).strip()
+        if not polling_section and (
+            re.match(r"^BVA\s*\d+(?:\s*:|$)", municipality, re.IGNORECASE)
+            or municipality.lower().startswith("vote ")
+        ):
+            is_special = True
+            polling_section = f"special:{municipality}"
         polling_section_group = str(row.get("Regroupement", "")).strip()
         registered = _number(row["É.I."])
         valid = _number(row["B.V."])
         rejected = _number(row["B.R."])
 
         candidate_votes = [_number(row[column]) for column in candidate_columns]
-        candidate_votes = [0.0 if np.isnan(value) else value for value in candidate_votes]
+        candidate_votes = [
+            0.0 if np.isnan(value) else value for value in candidate_votes
+        ]
 
-        if not is_special:
+        if municipality.upper() == "TOTAL DE LA CIRCONSCRIPTION":
+            declared_totals.append([int(value) for value in candidate_votes])
+            continue
+        if not polling_section:
+            raise ValueError(
+                f"{source_file}: unrecognized row without section: {municipality!r}"
+            )
+
+        if not is_special or not np.isnan(valid):
             if np.isnan(valid):
                 raise ValueError(f"{source_file}: regular polling row has no B.V.")
             difference = abs(sum(candidate_votes) - valid)
@@ -303,11 +351,28 @@ def parse_modern_riding_csv(
     frame = pd.DataFrame(output, columns=CANONICAL_COLUMNS)
     if frame.empty:
         raise ValueError(f"{source_file}: no polling-station records parsed")
+    if declared_totals:
+        if len(declared_totals) != 1:
+            raise ValueError(f"{source_file}: multiple riding totals")
+        actual = [
+            int(
+                frame.loc[
+                    (frame["candidate"] == candidate) & (frame["party"] == party),
+                    "votes",
+                ].sum()
+            )
+            for candidate, party, _ in parsed_candidates
+        ]
+        if actual != declared_totals[0]:
+            raise ValueError(
+                f"{source_file}: candidate sums differ from declared riding totals"
+            )
+    frame.attrs["declared_totals_checked"] = bool(declared_totals)
     return frame
 
 
 def _validate_poll_uniqueness(frame: pd.DataFrame) -> None:
-    regular = frame[~frame["is_special_vote"]].copy()
+    regular = frame.copy()
 
     # In long format a polling-section ID legitimately repeats once per
     # candidate. A repeated candidate within the same poll means the poll row
@@ -317,6 +382,7 @@ def _validate_poll_uniqueness(frame: pd.DataFrame) -> None:
         "riding_code",
         "polling_section",
         "candidate",
+        "party",
     ]
     duplicate_candidates = regular.duplicated(candidate_keys, keep=False)
     if duplicate_candidates.any():
@@ -338,8 +404,7 @@ def _validate_poll_uniqueness(frame: pd.DataFrame) -> None:
     if not duplicates.empty:
         sample = duplicates.head().index.tolist()
         raise ValueError(
-            "duplicated polling-section IDs within election/riding: "
-            f"{sample}"
+            f"duplicated polling-section IDs within election/riding: {sample}"
         )
 
 
@@ -366,7 +431,7 @@ def validate_historical_long(frame: pd.DataFrame) -> dict[str, object]:
         .agg(candidate_votes=("votes", "sum"), valid_votes=("valid_votes", "first"))
         .reset_index()
     )
-    regular = totals[~totals["is_special_vote"] & totals["valid_votes"].notna()]
+    regular = totals[totals["valid_votes"].notna()]
     mismatch = (regular["candidate_votes"] - regular["valid_votes"]).abs()
     if not mismatch.empty and float(mismatch.max()) > 1e-9:
         raise ValueError(
@@ -379,9 +444,9 @@ def validate_historical_long(frame: pd.DataFrame) -> dict[str, object]:
         regular_rows[["election", "riding_code"]].drop_duplicates().shape[0]
     )
     poll_count = int(
-        regular_rows[
-            ["election", "riding_code", "polling_section"]
-        ].drop_duplicates().shape[0]
+        regular_rows[["election", "riding_code", "polling_section"]]
+        .drop_duplicates()
+        .shape[0]
     )
 
     party_votes = (
@@ -419,12 +484,12 @@ def _is_riding_result_member(name: str, election_date: str) -> bool:
     """Select only official per-riding result CSVs from a DGEQ archive."""
 
     basename = PurePosixPath(name).name.lower()
-    if not basename.endswith(".csv"):
+    if not basename.endswith((".csv", ".xlsx")):
         return False
     if election_date == "2014-04-07":
         return basename.endswith("_officiels2014.csv")
     if election_date in {"2018-10-01", "2022-10-03"}:
-        return basename.startswith("dge-80.10_") and "sans_se" in basename
+        return bool(re.fullmatch(r"dge-80[.-]10_.+_sans[-_]se\.(?:csv|xlsx)", basename))
     return False
 
 
@@ -432,6 +497,8 @@ def parse_election_archive(
     raw_zip: bytes,
     *,
     election_date: str,
+    expected_riding_count: int | None = None,
+    require_declared_totals: bool = False,
 ) -> HistoricalDataset:
     """Parse all modern riding CSVs from one official DGEQ ZIP archive."""
 
@@ -444,16 +511,14 @@ def parse_election_archive(
         csv_members = sorted(
             name
             for name in archive.namelist()
-            if name.lower().endswith(".csv") and not name.endswith("/")
+            if name.lower().endswith((".csv", ".xlsx")) and not name.endswith("/")
         )
         members = [
             name
             for name in csv_members
             if _is_riding_result_member(name, election_date)
         ]
-        ignored_csv_members = [
-            name for name in csv_members if name not in set(members)
-        ]
+        ignored_csv_members = [name for name in csv_members if name not in set(members)]
         if not members:
             raise ValueError(
                 f"{election_date}: DGEQ archive contains no recognized "
@@ -462,8 +527,26 @@ def parse_election_archive(
 
         for member in members:
             try:
+                raw = archive.read(member)
+                if member.lower().endswith(".xlsx"):
+                    # Four 2018 riding files are official spreadsheets. Adapt
+                    # their tabular transport into the same strict row parser.
+                    workbook = load_workbook(
+                        io.BytesIO(raw), read_only=True, data_only=True
+                    )
+                    try:
+                        if len(workbook.worksheets) != 1:
+                            raise ValueError("expected one official results worksheet")
+                        text = io.StringIO()
+                        writer = csv.writer(text)
+                        writer.writerows(
+                            workbook.worksheets[0].iter_rows(values_only=True)
+                        )
+                        raw = text.getvalue().encode("utf-8")
+                    finally:
+                        workbook.close()
                 frame = parse_modern_riding_csv(
-                    archive.read(member),
+                    raw,
                     election_date=election_date,
                     source_file=member,
                 )
@@ -474,12 +557,23 @@ def parse_election_archive(
             frames.append(frame)
 
     rows = pd.concat(frames, ignore_index=True)
+    if require_declared_totals and any(not frame.attrs["declared_totals_checked"] for frame in frames):
+        raise ValueError(f"{election_date}: missing declared riding candidate totals")
     diagnostics = validate_historical_long(rows)
+    if expected_riding_count is not None and (
+        len(frames) != expected_riding_count
+        or rows["riding_code"].nunique() != expected_riding_count
+        or any(frame["riding_code"].nunique() != 1 for frame in frames)
+    ):
+        raise ValueError(
+            f"{election_date}: expected exactly {expected_riding_count} riding files and IDs"
+        )
     diagnostics.update(
         {
             "archive_url": archive_url(election_date),
             "archive_sha256": hashlib.sha256(raw_zip).hexdigest(),
             "source_file_count": len(frames),
+            "source_files": members,
             "ignored_csv_members": ignored_csv_members,
         }
     )
@@ -536,14 +630,17 @@ def build_historical_dataset(
     for election_date in elections:
         path = download_archive(election_date, cache_dir, refresh=refresh)
         datasets.append(
-            parse_election_archive(path.read_bytes(), election_date=election_date)
+            parse_election_archive(
+                path.read_bytes(),
+                election_date=election_date,
+                expected_riding_count=125,
+                require_declared_totals=True,
+            )
         )
 
     rows = pd.concat([dataset.rows for dataset in datasets], ignore_index=True)
     diagnostics = validate_historical_long(rows)
-    diagnostics["archives"] = [
-        dataset.diagnostics for dataset in datasets
-    ]
+    diagnostics["archives"] = [dataset.diagnostics for dataset in datasets]
     return HistoricalDataset(rows=rows, diagnostics=diagnostics)
 
 

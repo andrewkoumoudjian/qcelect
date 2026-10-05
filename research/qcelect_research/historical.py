@@ -14,7 +14,7 @@ import re
 import urllib.request
 import zipfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 import numpy as np
@@ -372,6 +372,19 @@ def validate_historical_long(frame: pd.DataFrame) -> dict[str, object]:
     }
 
 
+def _is_riding_result_member(name: str, election_date: str) -> bool:
+    """Select only official per-riding result CSVs from a DGEQ archive."""
+
+    basename = PurePosixPath(name).name.lower()
+    if not basename.endswith(".csv"):
+        return False
+    if election_date == "2014-04-07":
+        return basename.endswith("_officiels2014.csv")
+    if election_date in {"2018-10-01", "2022-10-03"}:
+        return basename.startswith("dge-80.10_") and "sans_se" in basename
+    return False
+
+
 def parse_election_archive(
     raw_zip: bytes,
     *,
@@ -383,23 +396,39 @@ def parse_election_archive(
         raise ValueError(f"{election_date} is not a supported modern election")
 
     frames: list[pd.DataFrame] = []
+    ignored_csv_members: list[str] = []
     with zipfile.ZipFile(io.BytesIO(raw_zip)) as archive:
-        members = sorted(
+        csv_members = sorted(
             name
             for name in archive.namelist()
             if name.lower().endswith(".csv") and not name.endswith("/")
         )
+        members = [
+            name
+            for name in csv_members
+            if _is_riding_result_member(name, election_date)
+        ]
+        ignored_csv_members = [
+            name for name in csv_members if name not in set(members)
+        ]
         if not members:
-            raise ValueError("DGEQ archive contains no CSV files")
+            raise ValueError(
+                f"{election_date}: DGEQ archive contains no recognized "
+                "per-riding result CSVs"
+            )
 
         for member in members:
-            frames.append(
-                parse_modern_riding_csv(
+            try:
+                frame = parse_modern_riding_csv(
                     archive.read(member),
                     election_date=election_date,
                     source_file=member,
                 )
-            )
+            except Exception as exc:
+                raise ValueError(
+                    f"{election_date}: failed parsing archive member {member!r}"
+                ) from exc
+            frames.append(frame)
 
     rows = pd.concat(frames, ignore_index=True)
     diagnostics = validate_historical_long(rows)
@@ -408,6 +437,7 @@ def parse_election_archive(
             "archive_url": archive_url(election_date),
             "archive_sha256": hashlib.sha256(raw_zip).hexdigest(),
             "source_file_count": len(frames),
+            "ignored_csv_members": ignored_csv_members,
         }
     )
     return HistoricalDataset(rows=rows, diagnostics=diagnostics)

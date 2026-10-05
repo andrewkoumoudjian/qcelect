@@ -92,15 +92,18 @@ def test_archive_parser_reads_every_csv_and_records_archive_hash():
     memory = io.BytesIO()
     with zipfile.ZipFile(memory, "w") as archive:
         archive.writestr(
-            "riding-a.csv", (FIXTURES / "modern_2022.csv").read_bytes()
+            "DGE-80.10_riding-a_sans_SE.csv",
+            (FIXTURES / "modern_2022.csv").read_bytes(),
         )
         second = (FIXTURES / "modern_2022.csv").read_text(encoding="utf-8")
         second = second.replace("303,Test-2022", "304,Other-2022")
-        archive.writestr("riding-b.csv", second.encode())
+        archive.writestr("DGE-80.10_riding-b_sans_SE.csv", second.encode())
+        archive.writestr("metadata.csv", b"not,a,riding,file\n")
 
     dataset = parse_election_archive(memory.getvalue(), election_date="2022-10-03")
 
     assert dataset.diagnostics["source_file_count"] == 2
+    assert dataset.diagnostics["ignored_csv_members"] == ["metadata.csv"]
     assert len(dataset.diagnostics["archive_sha256"]) == 64
     assert set(dataset.rows["riding_code"]) == {"303", "304"}
 

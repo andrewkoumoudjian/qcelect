@@ -26,6 +26,13 @@ import numpy as np
 import pandas as pd
 
 SECTION_GEOMETRY_URLS = {
+    # Original DGEQ 2014 polling-section shapefile, preserved by the Internet
+    # Archive. The timestamped replay URL pins the exact archived official file.
+    "2014-04-07": (
+        "https://web.archive.org/web/20160407203022id_/"
+        "http://www.electionsquebec.qc.ca/documents/zip/"
+        "sections%20de-vote-elections-2014-shapefile.zip"
+    ),
     "2018-10-01": (
         "https://donnees.electionsquebec.qc.ca/autres/provincial/"
         "sections_vote_2018_shapefile.zip"

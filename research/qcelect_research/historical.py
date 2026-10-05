@@ -122,22 +122,34 @@ def _header_and_records(raw: bytes) -> tuple[list[str], list[list[str]]]:
         ),
         None,
     )
-    if header_index is None:
-        sample = [row[:5] for row in rows[:8]]
-        raise ValueError(
-            "modern DGEQ file is missing Header: prefix; "
-            f"first rows={sample!r}"
-        )
 
-    headers = [
-        value.strip()
-        for value in _strip_trailing_garbage(rows[header_index][1:])
-    ]
+    if header_index is not None:
+        headers = [
+            value.strip()
+            for value in _strip_trailing_garbage(rows[header_index][1:])
+        ]
+        record_start = header_index + 1
+    else:
+        # The current official 2014 archive differs from the later 2018/2022
+        # exports and from older copied research files: each riding CSV starts
+        # directly with the named header row, with no Election:/Header: prefix.
+        direct_headers = [
+            value.strip() for value in _strip_trailing_garbage(rows[0])
+        ]
+        structural = {"Code", "Circonscription", "S.V.", "É.I.", "B.V.", "B.R."}
+        if not structural.issubset(direct_headers):
+            sample = [row[:5] for row in rows[:8]]
+            raise ValueError(
+                "DGEQ file has neither a Header: prefix nor a recognized "
+                f"direct header; first rows={sample!r}"
+            )
+        headers = direct_headers
+        record_start = 1
     if not headers:
         raise ValueError("modern DGEQ file has an empty header")
 
     records: list[list[str]] = []
-    for raw_row in rows[header_index + 1 :]:
+    for raw_row in rows[record_start:]:
         row = _strip_trailing_garbage(raw_row)
         if not row:
             continue

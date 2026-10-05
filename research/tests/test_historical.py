@@ -51,6 +51,22 @@ def test_modern_elections_normalize_to_long_format(
     assert expected_party in set(frame["party"])
 
 
+
+def test_2014_official_archive_direct_header_is_supported():
+    raw = (FIXTURES / "modern_2014.csv").read_text(encoding="utf-8")
+    _, header, *records = raw.splitlines()
+    direct = "\n".join([header.removeprefix("Header:,"), *records]).encode()
+
+    frame = parse_modern_riding_csv(
+        direct,
+        election_date="2014-04-07",
+        source_file="Abitibi-Est_officiels2014.csv",
+    )
+
+    assert frame["riding_code"].iloc[0] == "101"
+    assert frame["valid_votes"].iloc[0] == 60
+
+
 def test_2014_trailing_commas_do_not_shift_columns_and_merged_poll_is_flagged():
     frame = parse_modern_riding_csv(
         (FIXTURES / "modern_2014.csv").read_bytes(),

@@ -6,7 +6,8 @@
     "dev:web": "pnpm --filter @qcelect/web dev",
     "dev:worker": "pnpm --filter @qcelect/worker dev",
     "build:map": "node scripts/build-map.mjs",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "check:architecture": "node scripts/check-boundaries.mjs"
   },
   "devDependencies": {
     "d3-geo": "^3.1.1"

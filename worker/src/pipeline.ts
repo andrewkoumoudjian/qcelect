@@ -1,6 +1,7 @@
 import { normalizeDgeqResults } from "@qcelect/core";
 import {
   PublicLiveStateSchema,
+  SourceValidatorsSchema,
   type PublicLiveState,
 } from "@qcelect/schema";
 import {
@@ -17,36 +18,30 @@ export const VALIDATORS_KEY = "source-validators:v1";
 export interface LiveStore {
   get(key: string): Promise<string | null>;
   put(key: string, value: string): Promise<void>;
+  acceptOfficial?: (state: PublicLiveState) => Promise<boolean>;
 }
 
 export interface RefreshDependencies {
   fetchResults: (validators: SourceValidators) => Promise<DgeqFetchResult>;
   now: () => string;
   project: (state: PublicLiveState) => PublicLiveState;
-  onProjectionError?: (error: unknown) => void;
+  onProjectionError?: (error: Error) => void;
 }
 
 const defaultDependencies: RefreshDependencies = {
   fetchResults: (validators) => fetchDgeqResults(fetch, validators),
   now: () => new Date().toISOString(),
   project: applyProjections,
-  onProjectionError: (error) => console.error("projection inference failed", error),
+  onProjectionError: (error) =>
+    console.error("projection inference failed", error),
 };
 
 function parseValidators(raw: string | null): SourceValidators {
   if (!raw) return {};
 
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-
-    const value = parsed as Record<string, unknown>;
-    return {
-      ...(typeof value.etag === "string" ? { etag: value.etag } : {}),
-      ...(typeof value.lastModified === "string"
-        ? { lastModified: value.lastModified }
-        : {}),
-    };
+    const parsed = SourceValidatorsSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : {};
   } catch {
     return {};
   }
@@ -55,9 +50,11 @@ function parseValidators(raw: string | null): SourceValidators {
 async function persistValidators(
   store: LiveStore,
   validators: SourceValidators,
+  previous: string | null,
 ): Promise<void> {
   if (!validators.etag && !validators.lastModified) return;
-  await store.put(VALIDATORS_KEY, JSON.stringify(validators));
+  const body = JSON.stringify(validators);
+  if (body !== previous) await store.put(VALIDATORS_KEY, body);
 }
 
 /**
@@ -80,12 +77,12 @@ export async function refreshLiveState(
   const source = await deps.fetchResults(parseValidators(validatorsRaw));
 
   if (source.status === "not-modified") {
-    await persistValidators(store, source.validators);
+    await persistValidators(store, source.validators, validatorsRaw);
     return null;
   }
 
   if (priorHash === source.sha256) {
-    await persistValidators(store, source.validators);
+    await persistValidators(store, source.validators, validatorsRaw);
     return null;
   }
 
@@ -93,12 +90,39 @@ export async function refreshLiveState(
     ingestedAt: deps.now(),
     sourceSha256: source.sha256,
   });
+  if (store.acceptOfficial && !(await store.acceptOfficial(normalized))) {
+    await persistValidators(store, source.validators, validatorsRaw);
+    return null;
+  }
 
   let state = normalized;
   try {
-    state = deps.project(normalized);
+    const evaluated = PublicLiveStateSchema.parse(
+      deps.project(structuredClone(normalized)),
+    );
+    const projections = new Map(
+      evaluated.ridings.map((riding) => [riding.id, riding.projection]),
+    );
+    if (
+      evaluated.ridings.length !== normalized.ridings.length ||
+      projections.size !== normalized.ridings.length ||
+      normalized.ridings.some((riding) => !projections.has(riding.id))
+    ) {
+      throw new Error("Projection changed the official riding universe");
+    }
+    state = {
+      ...normalized,
+      ridings: normalized.ridings.map((riding) => ({
+        ...riding,
+        projection: projections.get(riding.id) ?? null,
+      })),
+    };
   } catch (error: unknown) {
-    deps.onProjectionError?.(error);
+    deps.onProjectionError?.(
+      error instanceof Error
+        ? error
+        : new Error("Projection evaluation failed"),
+    );
   }
 
   const validated = PublicLiveStateSchema.parse(state);
@@ -108,7 +132,7 @@ export async function refreshLiveState(
   // valid official snapshot.
   await store.put(LIVE_KEY, JSON.stringify(validated));
   await store.put(HASH_KEY, source.sha256);
-  await persistValidators(store, source.validators);
+  await persistValidators(store, source.validators, validatorsRaw);
 
   return validated;
 }

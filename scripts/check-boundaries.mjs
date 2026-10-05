@@ -41,7 +41,7 @@ const workerManifest = JSON.parse(
   await readFile(join(root, "worker/package.json"), "utf8"),
 );
 for (const dependency of Object.keys(workerManifest.dependencies ?? {})) {
-  if (!dependency.startsWith("@qcelect/")) {
+  if (!dependency.startsWith("@qcelect/") && dependency !== "@libsql/client") {
     violations.push(
       `worker/package.json: runtime dependency ${dependency} is outside the qcelect production core`,
     );

@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const SourceValidatorsSchema = z.object({
+  etag: z.string().optional(),
+  lastModified: z.string().optional(),
+});
+export type SourceValidators = z.infer<typeof SourceValidatorsSchema>;
+export const DatabaseEnvironmentSchema = z.object({
+  TURSO_DATABASE_URL: z.string().optional(),
+  TURSO_AUTH_TOKEN: z.string().optional(),
+});
+
 export const DgeqCandidateSchema = z
   .object({
     numeroCandidat: z.number(),

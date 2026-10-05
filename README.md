@@ -24,6 +24,35 @@ docs/                     architecture, model and provenance decisions
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [AGENTS.md](AGENTS.md) before changing boundaries.
 
+## Run locally
+
+```bash
+pnpm install
+pnpm db:migrate
+pnpm dev
+```
+
+Open http://localhost:3000. The default database is local SQLite/libSQL at
+`data/generated/qcelect.db`; no Docker or hosted account is required. Optional
+Turso configuration comes from a root `.env` matching `.env.example`. Never
+commit credentials. `pnpm db:status` shows applied migration hashes.
+
+Opening the application starts one shared server ingestion loop. It checks the
+official feed every five seconds, with conditional HTTP validators and SHA-256
+deduplication. Changed, validated snapshots are persisted before model work and
+pushed immediately through `/api/live/stream` (SSE). Browsers reconnect and fall
+back to the cached `/api/live.json` endpoint. Client reads do not query Turso or
+Élections Québec. `/api/health` reports source errors and the last check time.
+
+Before Élections Québec publishes results, the page waits rather than showing
+fixture votes. Upstream publication is every two to five minutes, so faster
+local delivery cannot accelerate that source cadence. Projections remain null
+until frozen artifacts pass their statistical validation.
+
+Research is optional for running the app; install [uv](https://docs.astral.sh/uv/)
+and use `pnpm research:test` or `pnpm research:validate` for the offline data gate.
+Large generated data stays in the ignored `data/generated/` directory.
+
 ## Canonical live source
 
 Élections Québec's all-in-one JSON results feed is the canonical election-night source. Clients never call it directly; the worker polls it, validates it, deduplicates unchanged snapshots and publishes one normalized cached state.

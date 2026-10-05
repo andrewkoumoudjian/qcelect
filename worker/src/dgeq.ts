@@ -1,12 +1,9 @@
 import { DgeqResultsSchema, type DgeqResults } from "@qcelect/schema";
+import type { SourceValidators } from "@qcelect/schema";
+export type { SourceValidators } from "@qcelect/schema";
 
 export const DGEQ_RESULTS_URL =
   "https://donnees.electionsquebec.qc.ca/production/provincial/resultats/resultats.json";
-
-export interface SourceValidators {
-  etag?: string;
-  lastModified?: string;
-}
 
 export type DgeqFetchResult =
   | {
@@ -41,7 +38,10 @@ function validatorsFromResponse(
 }
 
 export async function sha256(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(text),
+  );
   return toHex(new Uint8Array(digest));
 }
 
@@ -61,7 +61,10 @@ export async function fetchDgeqResults(
     headers.set("if-modified-since", previousValidators.lastModified);
   }
 
-  const response = await fetcher(DGEQ_RESULTS_URL, { headers });
+  const response = await fetcher(DGEQ_RESULTS_URL, {
+    headers,
+    signal: AbortSignal.timeout(10_000),
+  });
   const validators = validatorsFromResponse(response, previousValidators);
 
   if (response.status === 304) {

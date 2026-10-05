@@ -1,15 +1,11 @@
 "use client";
 
-import {
-  PublicLiveStateSchema,
-  type PublicLiveState,
-} from "@qcelect/schema";
+import { PublicLiveStateSchema, type PublicLiveState } from "@qcelect/schema";
 import { useEffect, useMemo, useState } from "react";
 import { ResultsViewTabs } from "./ResultsViewTabs";
 import { RidingDialog } from "./RidingDialog";
 
-const LIVE_API_URL =
-  process.env.NEXT_PUBLIC_LIVE_API_URL ?? "/api/live.json";
+const LIVE_API_URL = process.env.NEXT_PUBLIC_LIVE_API_URL ?? "/api/live.json";
 const POLL_MS = 20_000;
 
 type Riding = PublicLiveState["ridings"][number];
@@ -68,36 +64,79 @@ export function LiveResults() {
 
   useEffect(() => {
     let cancelled = false;
+    let streamConnected = false;
+    let polling = false;
     let timeout: ReturnType<typeof setTimeout> | undefined;
 
+    function acceptState(next: PublicLiveState) {
+      if (cancelled) return;
+      setState((current) =>
+        current?.sourceSha256 === next.sourceSha256 ? current : next,
+      );
+      setConnectionError(false);
+      setSelectedRiding((current) =>
+        current
+          ? (next.ridings.find((riding) => riding.id === current.id) ?? null)
+          : null,
+      );
+    }
+
     async function poll() {
+      if (polling || cancelled) return;
+      polling = true;
       try {
-        const response = await fetch(LIVE_API_URL, { cache: "no-store" });
+        const response = await fetch(LIVE_API_URL, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(10_000),
+        });
         if (!response.ok) throw new Error(`live API HTTP ${response.status}`);
 
         const parsed = PublicLiveStateSchema.safeParse(await response.json());
         if (!parsed.success) throw new Error("invalid live state");
 
-        if (!cancelled) {
-          setState(parsed.data);
-          setConnectionError(false);
-          setSelectedRiding((current) =>
-            current
-              ? parsed.data.ridings.find((riding) => riding.id === current.id) ??
-                null
-              : null,
-          );
-        }
+        if (!streamConnected) acceptState(parsed.data);
       } catch {
         if (!cancelled) setConnectionError(true);
       } finally {
-        if (!cancelled) timeout = setTimeout(poll, POLL_MS);
+        polling = false;
+        if (!cancelled && !streamConnected)
+          timeout = setTimeout(() => {
+            timeout = undefined;
+            void poll();
+          }, POLL_MS);
       }
     }
 
-    void poll();
+    const stream =
+      LIVE_API_URL === "/api/live.json"
+        ? new EventSource("/api/live/stream")
+        : null;
+    if (stream) {
+      stream.onopen = () => {
+        streamConnected = true;
+        setConnectionError(false);
+        if (timeout) clearTimeout(timeout);
+        timeout = undefined;
+      };
+      stream.onmessage = (event) => {
+        try {
+          const parsed = PublicLiveStateSchema.safeParse(
+            JSON.parse(event.data),
+          );
+          if (parsed.success) acceptState(parsed.data);
+        } catch {
+          setConnectionError(true);
+        }
+      };
+      stream.onerror = () => {
+        streamConnected = false;
+        if (!cancelled) setConnectionError(true);
+        if (!timeout) void poll();
+      };
+    } else void poll();
     return () => {
       cancelled = true;
+      stream?.close();
       if (timeout) clearTimeout(timeout);
     };
   }, []);
@@ -132,7 +171,8 @@ export function LiveResults() {
           <strong>Officiel · Élections Québec</strong>
           <span>Mis à jour à {formatTimestamp(state.sourceUpdatedAt)}</span>
           <span>
-            {number.format(state.pollsReported)} / {number.format(state.pollsTotal)} bureaux
+            {number.format(state.pollsReported)} /{" "}
+            {number.format(state.pollsTotal)} bureaux
           </span>
           <span>{percent.format(state.reportingPct)} % dépouillé</span>
         </div>
@@ -189,7 +229,10 @@ export function LiveResults() {
         }}
       />
 
-      <section className="resultsTable" aria-label="Résultats par circonscription">
+      <section
+        className="resultsTable"
+        aria-label="Résultats par circonscription"
+      >
         <div className="sectionHeading">
           <div>
             <p className="statusKicker">Officiel</p>

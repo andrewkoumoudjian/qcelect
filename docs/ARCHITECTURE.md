@@ -53,7 +53,31 @@ The public state is immutable per source update. Each accepted snapshot carries:
 - model artifact version;
 - projection/calibration version.
 
-Election-night history can be appended to D1/R2 later. It is not required to serve the current state.
+Local operation now uses the official libSQL TypeScript client, with optional
+Turso configuration. The narrow `ElectionRepository` adapter implements the
+existing ingestion store contract. Versioned SQL migrations carry a checksum
+ledger and apply each migration transactionally.
+
+Each accepted source hash has one unique official snapshot containing the full
+normalized riding, candidate and party state. A single atomic insert persists
+the complete official document, avoiding partial election writes. The original
+official JSON is immutable; the separate public JSON can acquire validated
+model output after evaluation. Model errors or malformed output cannot undo the
+official insert. A hash that already exists terminates before model evaluation.
+
+This first local slice stores normalized result documents rather than creating
+unused model tables. Relational metadata/projection tables and historical replay
+remain subsequent work. Geometry stays in static assets.
+
+The Next.js Node adapter owns the local process loop and a memory cache. It polls
+serially with a ten-second fetch timeout and waits five seconds between checks.
+SSE subscribers receive changed snapshots immediately and a fifteen-second
+heartbeat. One global runtime is shared across HTTP/SSE routes; browser reads
+do not trigger database reads. Startup reloads the latest accepted state.
+
+Core normalization, ingestion and repository code is reusable by a future
+Cloudflare adapter. The existing deployed-worker entry still uses its KV
+adapter; no Cloudflare deployment or hosted database was touched.
 
 ## Production packages
 

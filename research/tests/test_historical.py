@@ -52,6 +52,24 @@ def test_modern_elections_normalize_to_long_format(
 
 
 
+def test_2014_majority_summary_row_is_not_treated_as_a_poll():
+    raw = (
+        "Code;Circonscription;Date scrutin;Étendue;Nom des Municipalités;"
+        "Secteur;Regroupement;S.V.;É.I.;Alpha Alice P.Q.;B.V.;B.R.;\n"
+        "579;Abitibi-Est;2014-04-07;G;Senneterre, v;1;;1;100;10;10;1;\n"
+        "579;Abitibi-Est;2014-04-07;G;Majorité en faveur de Alpha Alice : 5\n"
+    ).encode()
+
+    frame = parse_modern_riding_csv(
+        raw,
+        election_date="2014-04-07",
+        source_file="Abitibi-Est_officiels2014.csv",
+    )
+
+    assert frame["votes"].sum() == 10
+    assert set(frame["polling_section"]) == {"1"}
+
+
 def test_2014_official_archive_direct_header_is_supported():
     raw = (FIXTURES / "modern_2014.csv").read_text(encoding="utf-8")
     _, header, *records = raw.splitlines()

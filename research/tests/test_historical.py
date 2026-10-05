@@ -120,6 +120,24 @@ def test_2014_trailing_commas_do_not_shift_columns_and_merged_poll_is_flagged():
     assert merged["is_merged_poll"].all()
 
 
+def test_2014_regroupement_marks_merged_polling_sections():
+    raw = (
+        "Code;Circonscription;Date scrutin;Étendue;Nom des Municipalités;"
+        "Secteur;Regroupement;S.V.;É.I.;Alpha Alice P.Q.;B.V.;B.R.;\n"
+        "613;Chauveau;2014-04-07;G;Québec, v;95;Regr. BVO-18;17;0;0;0;0;\n"
+        "613;Chauveau;2014-04-07;G;Les résultats des BVA 1 et 4 ont été regroupés."
+    ).encode()
+
+    frame = parse_modern_riding_csv(
+        raw,
+        election_date="2014-04-07",
+        source_file="Chauveau_officiels2014.csv",
+    )
+
+    assert frame["polling_section_group"].iloc[0] == "Regr. BVO-18"
+    assert bool(frame["is_merged_poll"].iloc[0]) is True
+
+
 def test_zero_registered_electors_produce_unknown_turnout_not_infinity():
     frame = parse_modern_riding_csv(
         (FIXTURES / "modern_2018.csv").read_bytes(),

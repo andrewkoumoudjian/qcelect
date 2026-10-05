@@ -37,6 +37,11 @@ AGGREGATE_MARKERS = (
     "MAJORITE EN FAVEUR",
 )
 
+SOURCE_NOTE_MARKERS = (
+    "LES RÉSULTATS DES BVA",
+    "LES RESULTATS DES BVA",
+)
+
 SPECIAL_VOTE_MARKERS = (
     "VOTE DES DÉTENUS",
     "VOTE DES DETENUS",
@@ -65,6 +70,7 @@ CANONICAL_COLUMNS = [
     "riding_code",
     "riding",
     "polling_section",
+    "polling_section_group",
     "municipality",
     "candidate",
     "party",
@@ -174,7 +180,7 @@ def _header_and_records(raw: bytes) -> tuple[list[str], list[list[str]]]:
             continue
         if row[0].strip().rstrip(":").lower() in {"parties", "party"}:
             continue
-        if _contains_marker(row, AGGREGATE_MARKERS):
+        if _contains_marker(row, (*AGGREGATE_MARKERS, *SOURCE_NOTE_MARKERS)):
             continue
 
         is_special = _contains_marker(row, SPECIAL_VOTE_MARKERS)
@@ -234,6 +240,7 @@ def parse_modern_riding_csv(
         row = dict(zip(headers, record, strict=True))
         is_special = _contains_marker(record, SPECIAL_VOTE_MARKERS)
         polling_section = _clean_identifier(row["S.V."])
+        polling_section_group = str(row.get("Regroupement", "")).strip()
         registered = _number(row["É.I."])
         valid = _number(row["B.V."])
         rejected = _number(row["B.R."])
@@ -273,6 +280,7 @@ def parse_modern_riding_csv(
                     "riding_code": _clean_identifier(row["Code"]),
                     "riding": str(row["Circonscription"]).strip(),
                     "polling_section": polling_section,
+                    "polling_section_group": polling_section_group,
                     "municipality": str(row["Nom des Municipalités"]).strip(),
                     "candidate": candidate,
                     "party": party,
@@ -286,7 +294,7 @@ def parse_modern_riding_csv(
                     if not np.isnan(registered)
                     else pd.NA,
                     "turnout": turnout,
-                    "is_merged_poll": poll_number >= 500,
+                    "is_merged_poll": poll_number >= 500 or bool(polling_section_group),
                     "is_special_vote": is_special,
                     "source_file": source_file,
                 }

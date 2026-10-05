@@ -1,0 +1,19 @@
+{
+  "name": "@qcelect/worker",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "dependencies": {
+    "@qcelect/core": "workspace:*",
+    "@qcelect/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250927.0",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.40.0"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

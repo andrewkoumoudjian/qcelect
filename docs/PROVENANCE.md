@@ -14,7 +14,7 @@ Ported knowledge includes archive URL patterns, historical format/encoding chang
 The province-wide 2014/2018/2022 pipeline uses the same archive catalog and parser lessons, but downloads the official ZIP archives reproducibly rather than copying the prior Jeanne-Mance–Viger CSV collection. Full-archive validation found that the current official 2014 ZIP differs from the older copied research examples: its per-riding CSVs begin directly with the named `Code,Circonscription,...` header instead of an `Election:` / `Header:` prefix. qcelect handles that 2014 variant explicitly while keeping 2018/2022 strict. Tiny synthetic fixtures preserve these observed variants solely for regression testing.
 
 The narrow Jeanne-Mance–Viger CSVs are not copied into this repository because the useful reusable primitive is the reproducible acquisition/parser pipeline, not duplicated data.
-
+\nFor 2014 boundary transposition, the current Élections Québec site no longer links the election-specific polling-section shapefile. qcelect pins the Internet Archive capture from `20160407203022` of the original DGEQ URL `www.electionsquebec.qc.ca/documents/zip/sections%20de-vote-elections-2014-shapefile.zip`. This preserves the authoritative election-specific source rather than substituting 2018 geometry or a third-party reconstruction. The current Élections Québec historical map documentation confirms that the 2011 electoral map was in force for the 2014 general election.\n
 ## External references not vendored
 
 The following are architectural references only; their code is not copied here:

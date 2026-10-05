@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qcelect-live",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-05",
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "LIVE",
+      "id": "REPLACE_WITH_PRODUCTION_KV_ID"
+    }
+  ]
+}

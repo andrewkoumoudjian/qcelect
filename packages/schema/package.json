@@ -1,0 +1,18 @@
+{
+  "name": "@qcelect/schema",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}

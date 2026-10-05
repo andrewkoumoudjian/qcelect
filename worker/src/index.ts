@@ -1,36 +1,7 @@
-import { normalizeDgeqResults } from "@qcelect/core";
-import { PublicLiveStateSchema, type PublicLiveState } from "@qcelect/schema";
-import { fetchDgeqResults } from "./dgeq";
-import { applyProjections } from "./model";
-
-const LIVE_KEY = "live:v1";
-const HASH_KEY = "source-hash:v1";
+import { refreshLiveState, LIVE_KEY } from "./pipeline";
 
 export interface Env {
   LIVE: KVNamespace;
-}
-
-async function refresh(env: Env): Promise<PublicLiveState | null> {
-  const source = await fetchDgeqResults();
-  const priorHash = await env.LIVE.get(HASH_KEY);
-
-  if (priorHash === source.sha256) {
-    return null;
-  }
-
-  const normalized = normalizeDgeqResults(source.result, {
-    ingestedAt: new Date().toISOString(),
-    sourceSha256: source.sha256,
-  });
-  const state = applyProjections(normalized);
-  PublicLiveStateSchema.parse(state);
-
-  await Promise.all([
-    env.LIVE.put(LIVE_KEY, JSON.stringify(state)),
-    env.LIVE.put(HASH_KEY, source.sha256),
-  ]);
-
-  return state;
 }
 
 async function serveLive(env: Env): Promise<Response> {
@@ -58,9 +29,13 @@ export default {
     return new Response("Not found", { status: 404 });
   },
 
-  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(
+    _controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<void> {
     ctx.waitUntil(
-      refresh(env).catch((error: unknown) => {
+      refreshLiveState(env.LIVE).catch((error: unknown) => {
         console.error("live refresh failed", error);
       }),
     );

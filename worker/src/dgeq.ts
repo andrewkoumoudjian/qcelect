@@ -3,8 +3,44 @@ import { DgeqResultsSchema, type DgeqResults } from "@qcelect/schema";
 export const DGEQ_RESULTS_URL =
   "https://donnees.electionsquebec.qc.ca/production/provincial/resultats/resultats.json";
 
+export interface SourceValidators {
+  etag?: string;
+  lastModified?: string;
+}
+
+export type DgeqFetchResult =
+  | {
+      status: "not-modified";
+      validators: SourceValidators;
+    }
+  | {
+      status: "ok";
+      result: DgeqResults;
+      raw: string;
+      sha256: string;
+      validators: SourceValidators;
+    };
+
 function toHex(bytes: Uint8Array): string {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function validatorsFromResponse(
+  response: Response,
+  previous: SourceValidators,
+): SourceValidators {
+  return {
+    ...(response.headers.get("etag")
+      ? { etag: response.headers.get("etag") ?? undefined }
+      : previous.etag
+        ? { etag: previous.etag }
+        : {}),
+    ...(response.headers.get("last-modified")
+      ? { lastModified: response.headers.get("last-modified") ?? undefined }
+      : previous.lastModified
+        ? { lastModified: previous.lastModified }
+        : {}),
+  };
 }
 
 export async function sha256(text: string): Promise<string> {
@@ -12,17 +48,28 @@ export async function sha256(text: string): Promise<string> {
   return toHex(new Uint8Array(digest));
 }
 
-export async function fetchDgeqResults(fetcher: typeof fetch = fetch): Promise<{
-  result: DgeqResults;
-  raw: string;
-  sha256: string;
-}> {
-  const response = await fetcher(DGEQ_RESULTS_URL, {
-    headers: {
-      accept: "application/json",
-      "user-agent": "qcelect/1.0 (+https://github.com/andrewkoumoudjian/qcelect)",
-    },
+export async function fetchDgeqResults(
+  fetcher: typeof fetch = fetch,
+  previousValidators: SourceValidators = {},
+): Promise<DgeqFetchResult> {
+  const headers = new Headers({
+    accept: "application/json",
+    "user-agent": "qcelect/1.0 (+https://github.com/andrewkoumoudjian/qcelect)",
   });
+
+  if (previousValidators.etag) {
+    headers.set("if-none-match", previousValidators.etag);
+  }
+  if (previousValidators.lastModified) {
+    headers.set("if-modified-since", previousValidators.lastModified);
+  }
+
+  const response = await fetcher(DGEQ_RESULTS_URL, { headers });
+  const validators = validatorsFromResponse(response, previousValidators);
+
+  if (response.status === 304) {
+    return { status: "not-modified", validators };
+  }
 
   if (!response.ok) {
     throw new Error(`Élections Québec returned HTTP ${response.status}`);
@@ -32,5 +79,11 @@ export async function fetchDgeqResults(fetcher: typeof fetch = fetch): Promise<{
   const parsed: unknown = JSON.parse(raw);
   const result = DgeqResultsSchema.parse(parsed);
 
-  return { result, raw, sha256: await sha256(raw) };
+  return {
+    status: "ok",
+    result,
+    raw,
+    sha256: await sha256(raw),
+    validators,
+  };
 }

@@ -59,6 +59,7 @@ export function ElectionMap({
       )) {
         node.setAttribute("tabindex", "0");
         node.setAttribute("role", "button");
+        node.dataset.ridingName = node.getAttribute("aria-label") ?? "";
       }
 
       setLoaded(true);
@@ -79,6 +80,12 @@ export function ElectionMap({
         node.dataset.party = riding.party ?? "";
         node.dataset.final = String(riding.final);
         node.dataset.reporting = String(Math.round(riding.reportingPct));
+
+        const name = node.dataset.ridingName || `Circonscription ${riding.id}`;
+        const status = riding.party
+          ? `${riding.party} en tête, ${Math.round(riding.reportingPct)} % dépouillé`
+          : "aucun résultat";
+        node.setAttribute("aria-label", `${name}, ${status}`);
       }
     }
   }, [loaded, ridings]);

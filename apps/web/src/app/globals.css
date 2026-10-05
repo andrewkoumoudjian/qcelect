@@ -17,6 +17,10 @@ body {
   background: #f7f7f4;
 }
 
+button {
+  font: inherit;
+}
+
 .root {
   isolation: isolate;
 }
@@ -36,50 +40,187 @@ body {
   padding-bottom: 20px;
 }
 
-.eyebrow {
+.eyebrow,
+.statusKicker {
   margin: 0 0 7px;
   color: #62625d;
-  font-size: 13px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 h1,
 h2,
+h3,
 p {
   margin-top: 0;
 }
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(36px, 6vw, 72px);
+  font-size: clamp(38px, 6vw, 72px);
   letter-spacing: -0.055em;
   line-height: 0.95;
 }
 
-.liveBadge {
-  border: 1px solid #b82222;
+h2 {
+  margin-bottom: 0;
+  font-size: 28px;
+  letter-spacing: -0.025em;
+}
+
+.liveLoading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 220px;
+  border-bottom: 1px solid #d7d7d1;
+  padding: 36px 0;
+}
+
+.liveLoading h2 {
+  margin: 0 0 8px;
+}
+
+.liveLoading p {
+  margin-bottom: 0;
+  color: #666660;
+}
+
+.liveStatus {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid #d7d7d1;
+  padding: 14px 0;
+  color: #575752;
+  font-size: 13px;
+}
+
+.sourceStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  color: #a01818;
+  background: #b82222;
+  box-shadow: 0 0 0 3px rgb(184 34 34 / 12%);
+}
+
+.connectionNote {
+  color: #8a5c15;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  padding: 6px 9px;
 }
 
-.summary,
-.resultsTable {
-  padding: 24px 0;
+.majorityBand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid #d7d7d1;
+  padding: 19px 0;
 }
 
-.placeholder {
-  color: #6d6d67;
+.majorityBand > strong {
+  font-size: 31px;
+  letter-spacing: -0.04em;
+}
+
+.majorityBand > span {
+  color: #555550;
+}
+
+.modelSeparation {
+  margin-left: auto;
+  max-width: 480px;
+  text-align: right;
+  font-size: 12px;
+}
+
+.partySummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  margin: 24px 0 32px;
+  overflow: hidden;
+  border: 1px solid #d7d7d1;
+  background: #d7d7d1;
+}
+
+.partyCard {
+  min-width: 0;
+  background: #fff;
+  padding: 15px;
+}
+
+.partyIdentity {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-height: 49px;
+}
+
+.partyIdentity div {
+  min-width: 0;
+}
+
+.partyIdentity strong,
+.partyIdentity span {
+  display: block;
+}
+
+.partyIdentity span:not(.partySwatch) {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #6a6a64;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partySwatch {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 28px;
+  border-radius: 2px;
+}
+
+.partyMetrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 15px;
+  border-top: 1px solid #ecece7;
+  padding-top: 12px;
+}
+
+.partyMetrics strong,
+.partyMetrics span {
+  display: block;
+}
+
+.partyMetrics strong {
+  font-size: 21px;
+  letter-spacing: -0.025em;
+}
+
+.partyMetrics span {
+  margin-top: 2px;
+  color: #70706a;
+  font-size: 11px;
+  text-transform: uppercase;
 }
 
 .tabList {
   display: flex;
   gap: 4px;
+  overflow-x: auto;
   border-bottom: 1px solid #d7d7d1;
 }
 
@@ -90,9 +231,9 @@ h1 {
   background: transparent;
   color: #5c5c56;
   cursor: pointer;
-  font: inherit;
   font-weight: 650;
   padding: 11px 14px 10px;
+  white-space: nowrap;
 }
 
 .tab[data-active] {
@@ -100,8 +241,21 @@ h1 {
   color: #11110f;
 }
 
+.tab:focus-visible,
+.ridingLink:focus-visible,
+.closeRaceRow:focus-visible,
+.dialogClose:focus-visible {
+  outline: 2px solid #11110f;
+  outline-offset: 2px;
+}
+
 .tabPanel {
   padding-top: 18px;
+}
+
+.geographyLayout {
+  display: grid;
+  gap: 14px;
 }
 
 .mapFrame {
@@ -123,17 +277,21 @@ h1 {
   stroke: #ffffff;
   stroke-width: 0.7;
   cursor: pointer;
-  transition: fill 120ms linear;
+  transition:
+    fill 100ms linear,
+    opacity 100ms linear;
 }
 
 .electionMap [data-riding][data-party="PQ"] { fill: #2b63ad; }
-.electionMap [data-riding][data-party="PLQ"] { fill: #d43a3a; }
-.electionMap [data-riding][data-party="PCQ"] { fill: #2f78bf; }
-.electionMap [data-riding][data-party="CAQ"] { fill: #43a6a6; }
+.electionMap [data-riding][data-party="PLQ"],
+.electionMap [data-riding][data-party="PLQ/QLP"] { fill: #d43a3a; }
+.electionMap [data-riding][data-party="PCOQ"] { fill: #5f82bd; }
+.electionMap [data-riding][data-party="CAQ"],
+.electionMap [data-riding][data-party="ÉCF-CAQ"] { fill: #43a6a6; }
 .electionMap [data-riding][data-party="QS"] { fill: #e4782f; }
 
-.electionMap [data-riding][data-final="false"] {
-  opacity: 0.72;
+.electionMap [data-riding][data-final="false"][data-party]:not([data-party=""]) {
+  opacity: 0.78;
 }
 
 .electionMap [data-riding]:focus-visible {
@@ -149,20 +307,279 @@ h1 {
   color: #777770;
 }
 
-@media (max-width: 640px) {
-  .page {
-    width: min(100% - 20px, 1180px);
-    padding-top: 20px;
-  }
+.insetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
 
-  .masthead {
-    align-items: flex-start;
-  }
+.insetGrid h3 {
+  margin: 0 0 7px;
+  color: #555550;
+  font-size: 13px;
+}
 
-  .mapFrame,
-  .mapFallback {
-    min-height: 360px;
-  }
+.insetGrid .mapFrame,
+.insetGrid .mapFallback {
+  min-height: 260px;
+}
+
+.cartogramHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.cartogramHeader strong,
+.cartogramHeader span {
+  display: block;
+}
+
+.cartogramHeader span {
+  margin-top: 2px;
+  color: #6a6a64;
+  font-size: 12px;
+}
+
+.majorityMarker {
+  border-left: 2px solid #11110f;
+  padding-left: 9px;
+  color: #11110f !important;
+  font-weight: 700;
+}
+
+.closeRaceList {
+  border-top: 1px solid #d7d7d1;
+}
+
+.closeRaceRow {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 0;
+  border-bottom: 1px solid #d7d7d1;
+  background: transparent;
+  cursor: pointer;
+  padding: 13px 2px;
+  text-align: left;
+}
+
+.closeRaceRow:hover {
+  background: #f0f0eb;
+}
+
+.closeRaceRow strong,
+.closeRaceRow small {
+  display: block;
+}
+
+.closeRaceRow small {
+  margin-top: 3px;
+  color: #71716b;
+}
+
+.resultsTable {
+  padding: 36px 0 24px;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sectionHeading > span {
+  color: #6c6c66;
+  font-size: 12px;
+}
+
+.tableScroller {
+  overflow-x: auto;
+  border-top: 1px solid #bcbcb6;
+}
+
+.ridingTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ridingTable th,
+.ridingTable td {
+  border-bottom: 1px solid #deded8;
+  padding: 10px 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ridingTable th:first-child,
+.ridingTable td:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.ridingTable th {
+  color: #696963;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ridingLink {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 650;
+  padding: 0;
+  text-align: left;
+}
+
+.ridingLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  background: rgb(17 17 15 / 42%);
+}
+
+.dialogViewport {
+  position: fixed;
+  z-index: 21;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px;
+}
+
+.ridingDialog {
+  width: min(680px, 100%);
+  max-height: min(820px, calc(100vh - 48px));
+  overflow: auto;
+  border: 1px solid #bfbfb9;
+  background: #fff;
+  box-shadow: 0 18px 60px rgb(0 0 0 / 20%);
+  padding: 22px;
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #d7d7d1;
+  padding-bottom: 18px;
+}
+
+.dialogTitle {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -0.035em;
+}
+
+.dialogDescription {
+  margin: 7px 0 0;
+  color: #696963;
+  font-size: 13px;
+}
+
+.dialogClose {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #c7c7c1;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.candidateList {
+  padding: 12px 0;
+}
+
+.candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #ecece7;
+  padding: 11px 2px;
+}
+
+.candidate.leader {
+  border-left: 3px solid #11110f;
+  padding-left: 9px;
+}
+
+.candidate > div:last-child {
+  text-align: right;
+}
+
+.candidate strong,
+.candidate span {
+  display: block;
+}
+
+.candidate span {
+  margin-top: 2px;
+  color: #70706a;
+  font-size: 12px;
+}
+
+.ridingFacts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  margin: 10px 0 0;
+  background: #deded8;
+  border: 1px solid #deded8;
+}
+
+.ridingFacts > div {
+  background: #f8f8f5;
+  padding: 11px;
+}
+
+.ridingFacts dt {
+  color: #6e6e68;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.ridingFacts dd {
+  margin: 4px 0 0;
+  font-weight: 700;
+}
+
+.projectionPanel {
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+  border: 1px dashed #b8b8b1;
+  padding: 13px;
+  color: #555550;
+  font-size: 12px;
+}
+
+.projectionPanel .statusKicker {
+  margin-bottom: 3px;
+}
+
+.placeholder {
+  color: #6d6d67;
 }
 
 .sourceNotice {
@@ -172,4 +589,64 @@ h1 {
   color: #74746e;
   font-size: 12px;
   line-height: 1.5;
+}
+
+@media (min-width: 760px) {
+  .dialogViewport {
+    align-items: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    width: min(100% - 20px, 1180px);
+    padding-top: 20px;
+  }
+
+  .liveStatus,
+  .majorityBand {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .modelSeparation {
+    margin-left: 0;
+    text-align: left;
+  }
+
+  .partySummary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mapFrame,
+  .mapFallback {
+    min-height: 330px;
+  }
+
+  .insetGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cartogramHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dialogViewport {
+    padding: 0;
+  }
+
+  .ridingDialog {
+    width: 100%;
+    max-height: 88vh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 16px 16px 0 0;
+    padding: 18px;
+  }
+
+  .ridingFacts {
+    grid-template-columns: 1fr;
+  }
 }

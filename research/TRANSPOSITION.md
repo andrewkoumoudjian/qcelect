@@ -5,22 +5,21 @@ in the production worker.
 
 ## Official geometry sources
 
-Élections Québec currently publishes archived polling-section shapefiles for
-the 2018 and 2022 elections and the current 2026 polling-section geometry:
+Élections Québec currently publishes polling-section shapefiles for 2018,
+2022 and 2026. The original 2014 DGEQ polling-section shapefile is no longer
+linked from the current site, so qcelect uses the immutable Internet Archive
+capture of that official file from 2016-04-07 20:30:22 UTC:
 
+- 2014: original DGEQ `sections de-vote-elections-2014-shapefile.zip`, archived at timestamp `20160407203022`
 - 2018: `sections_vote_2018_shapefile.zip`
 - 2022: `sections_vote_2022_shapefile.zip`
 - 2026: `sections_vote_2026_shapefile.zip`
 - target ridings: `circonscriptions_electorales_sans_eau_2026.json`
 
-The archived open-data page does **not** currently expose a 2014
-polling-section geometry download. qcelect therefore refuses to substitute the
-2018 geometry for 2014. A 2014→2026 output must remain blocked until an
-authoritative 2014 section geometry is located or a separately documented,
-validated coarser fallback is approved.
-
-This matters because Élections Québec explicitly warns that polling-section
-boundaries can change from one election to another.
+The archived URL is timestamp-pinned and retains the original
+`electionsquebec.qc.ca` source path. qcelect never substitutes 2018 sections
+for 2014. This matters because Élections Québec explicitly warns that
+polling-section boundaries can change from one election to another.
 
 ## Weighting hierarchy
 

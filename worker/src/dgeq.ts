@@ -29,18 +29,15 @@ function validatorsFromResponse(
   response: Response,
   previous: SourceValidators,
 ): SourceValidators {
-  return {
-    ...(response.headers.get("etag")
-      ? { etag: response.headers.get("etag") ?? undefined }
-      : previous.etag
-        ? { etag: previous.etag }
-        : {}),
-    ...(response.headers.get("last-modified")
-      ? { lastModified: response.headers.get("last-modified") ?? undefined }
-      : previous.lastModified
-        ? { lastModified: previous.lastModified }
-        : {}),
-  };
+  const etag = response.headers.get("etag") ?? previous.etag;
+  const lastModified =
+    response.headers.get("last-modified") ?? previous.lastModified;
+  const validators: SourceValidators = {};
+
+  if (etag) validators.etag = etag;
+  if (lastModified) validators.lastModified = lastModified;
+
+  return validators;
 }
 
 export async function sha256(text: string): Promise<string> {

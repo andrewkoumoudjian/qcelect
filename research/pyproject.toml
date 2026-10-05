@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "qcelect-research"
 version = "0.0.0"
@@ -12,6 +16,10 @@ dependencies = [
 dev = [
   "pytest>=8.3",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["qcelect_research*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

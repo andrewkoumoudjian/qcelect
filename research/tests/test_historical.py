@@ -67,6 +67,25 @@ def test_2014_official_archive_direct_header_is_supported():
     assert frame["valid_votes"].iloc[0] == 60
 
 
+def test_2014_multi_token_party_labels_are_not_left_in_candidate_names():
+    raw = (
+        "Code;Circonscription;Date scrutin;Étendue;Nom des Municipalités;"
+        "Secteur;Regroupement;S.V.;É.I.;"
+        "Perron-Tellier Maxym É.A.P. - P.C.Q.;"
+        "Trudel Richard O.N. - P.I.Q.;B.V.;B.R.;\n"
+        "579;Abitibi-Est;2014-04-07;G;Senneterre, v;1;;1;100;7;3;10;1;\n"
+    ).encode()
+
+    frame = parse_modern_riding_csv(
+        raw,
+        election_date="2014-04-07",
+        source_file="Abitibi-Est_officiels2014.csv",
+    )
+
+    assert set(frame["candidate"]) == {"Perron-Tellier Maxym", "Trudel Richard"}
+    assert set(frame["party"]) == {"PCOQ", "ON"}
+
+
 def test_2014_trailing_commas_do_not_shift_columns_and_merged_poll_is_flagged():
     frame = parse_modern_riding_csv(
         (FIXTURES / "modern_2014.csv").read_bytes(),

@@ -69,3 +69,10 @@ Browser verification checked province and Montréal zoom/reset, actual viewBox
 movement during a Montréal pan, and absence of an accidental riding dialog
 after dragging. Map-shaped cartogram visual studies await the user's selection;
 the current cartogram asset remains unchanged.
+
+Party summary: only PQ, PLQ/QLP, PCOQ, QS and ÉCF-CAQ (including the existing
+PLQ/CAQ aliases) appear initially. The other 16 parties in the observed official
+snapshot are preserved in a Base UI disclosure, including those with zero
+votes. Browser verification confirmed the exact five-party summary, all 16
+other parties on expansion, and keyboard collapse through Space. Local tests
+(14), typechecks and changed-file lint pass; full lint remains at its baseline.

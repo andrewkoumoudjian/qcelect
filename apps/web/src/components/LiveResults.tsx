@@ -1,6 +1,7 @@
 "use client";
 
 import { PublicLiveStateSchema, type PublicLiveState } from "@qcelect/schema";
+import { Collapsible } from "@base-ui/react/collapsible";
 import { useEffect, useMemo, useState } from "react";
 import { ResultsViewTabs } from "./ResultsViewTabs";
 import { RidingDialog } from "./RidingDialog";
@@ -15,6 +16,14 @@ const WAITING_PARTIES = [
   { abbreviation: "QS", name: "Québec solidaire" },
   { abbreviation: "PCOQ", name: "Parti conservateur du Québec" },
 ];
+
+const FEATURED_PARTIES = new Set([
+  "PQ", "PLQ", "PLQ/QLP", "PCOQ", "QS", "CAQ", "ÉCF-CAQ",
+]);
+
+type DisplayParty = Pick<PublicLiveState["parties"][number], "abbreviation" | "name"> & {
+  results: PublicLiveState["parties"][number] | null;
+};
 
 const number = new Intl.NumberFormat("fr-CA");
 const percent = new Intl.NumberFormat("fr-CA", {
@@ -57,10 +66,42 @@ function partyRows(state: PublicLiveState) {
       b.votePct - a.votePct ||
       b.votes - a.votes,
   );
-  const active = ordered.filter(
-    (party) => party.seatsLeading > 0 || party.votes > 0,
+  return ordered;
+}
+
+function PartySummary({ parties, label }: {
+  parties: readonly DisplayParty[];
+  label: string;
+}) {
+  return (
+    <section className="partySummary" aria-label={label}>
+      {parties.map((party) => (
+        <article className="partyCard" key={party.abbreviation}>
+          <div className="partyIdentity">
+            <span
+              className="partySwatch"
+              style={{ backgroundColor: partyColor(party.abbreviation) }}
+              aria-hidden="true"
+            />
+            <div>
+              <strong>{party.abbreviation}</strong>
+              <span>{party.name}</span>
+            </div>
+          </div>
+          <div className="partyMetrics">
+            <div>
+              <strong>{party.results?.seatsLeading ?? "–"}</strong>
+              <span>en tête</span>
+            </div>
+            <div>
+              <strong>{party.results ? `${percent.format(party.results.votePct)} %` : "–"}</strong>
+              <span>vote</span>
+            </div>
+          </div>
+        </article>
+      ))}
+    </section>
   );
-  return active.length ? active : ordered.slice(0, 6);
 }
 
 export function LiveResults({ ridingMetadata }: {
@@ -148,6 +189,7 @@ export function LiveResults({ ridingMetadata }: {
   const parties = useMemo(() => state
     ? partyRows(state).map((party) => ({ abbreviation: party.abbreviation, name: party.name, results: party }))
     : WAITING_PARTIES.map((party) => ({ ...party, results: null })), [state]);
+  const otherParties = parties.filter((party) => !FEATURED_PARTIES.has(party.abbreviation));
   const ridings = ridingMetadata.map((metadata) =>
     state?.ridings.find((riding) => riding.id === metadata.id) ?? metadata,
   );
@@ -180,33 +222,21 @@ export function LiveResults({ ridingMetadata }: {
         ) : null}
       </section>
 
-      <section className="partySummary" aria-label="Sommaire des partis">
-        {parties.map((party) => (
-          <article className="partyCard" key={party.abbreviation}>
-            <div className="partyIdentity">
-              <span
-                className="partySwatch"
-                style={{ backgroundColor: partyColor(party.abbreviation) }}
-                aria-hidden="true"
-              />
-              <div>
-                <strong>{party.abbreviation}</strong>
-                <span>{party.name}</span>
-              </div>
-            </div>
-            <div className="partyMetrics">
-              <div>
-                <strong>{party.results?.seatsLeading ?? "–"}</strong>
-                <span>en tête</span>
-              </div>
-              <div>
-                <strong>{party.results ? `${percent.format(party.results.votePct)} %` : "–"}</strong>
-                <span>vote</span>
-              </div>
-            </div>
-          </article>
-        ))}
-      </section>
+      <PartySummary
+        parties={parties.filter((party) => FEATURED_PARTIES.has(party.abbreviation))}
+        label="Sommaire des partis"
+      />
+      {otherParties.length > 0 ? (
+        <Collapsible.Root className="otherParties">
+          <Collapsible.Trigger className="otherPartiesTrigger">
+            Autres ({otherParties.length})
+            <span className="disclosureArrow" aria-hidden="true">⌄</span>
+          </Collapsible.Trigger>
+          <Collapsible.Panel>
+            <PartySummary parties={otherParties} label="Autres partis" />
+          </Collapsible.Panel>
+        </Collapsible.Root>
+      ) : null}
 
       <section className="majorityBand" aria-label="Seuil de majorité">
         <strong>64</strong>

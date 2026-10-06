@@ -1,0 +1,375 @@
+"use client";
+
+import { PublicLiveStateSchema, type PublicLiveState } from "@qcelect/schema";
+import { Collapsible } from "@base-ui/react/collapsible";
+import { useEffect, useMemo, useState } from "react";
+import { ResultsViewTabs } from "./ResultsViewTabs";
+import { RidingDialog } from "./RidingDialog";
+
+const LIVE_API_URL = process.env.NEXT_PUBLIC_LIVE_API_URL ?? "/api/live.json";
+const POLL_MS = 20_000;
+
+const WAITING_PARTIES = [
+  { abbreviation: "PQ", name: "Parti québécois" },
+  { abbreviation: "PLQ", name: "Parti libéral du Québec" },
+  { abbreviation: "PCOQ", name: "Parti conservateur du Québec" },
+  { abbreviation: "CAQ", name: "Équipe Christine Fréchette - Coalition avenir Québec" },
+  { abbreviation: "QS", name: "Québec solidaire" },
+];
+
+const FEATURED_PARTIES = new Set([
+  "PQ", "PLQ", "PLQ/QLP", "PCOQ", "QS", "CAQ", "ÉCF-CAQ",
+]);
+
+const CAQ_MEDIA = { logo: "caq-logo.png", portrait: "caq-portrait.png", representative: "Christine Fréchette" };
+const PLQ_MEDIA = { logo: "plq-logo.svg", portrait: "plq-portrait.png", representative: "Charles Milliard" };
+const PARTY_MEDIA = new Map([
+  ["PQ", { logo: "pq-logo.svg", portrait: "pq-portrait.png", representative: "Paul St-Pierre Plamondon" }],
+  ["PLQ", PLQ_MEDIA], ["PLQ/QLP", PLQ_MEDIA],
+  ["PCOQ", { logo: "pcoq-logo.png", portrait: "pcoq-portrait.png", representative: "Éric Duhaime" }],
+  ["CAQ", CAQ_MEDIA], ["ÉCF-CAQ", CAQ_MEDIA],
+  ["QS", { logo: "qs-logo.svg", portrait: "qs-portrait.png", representative: "Ruba Ghazal" }],
+]);
+
+type DisplayParty = Pick<PublicLiveState["parties"][number], "abbreviation" | "name"> & {
+  results: PublicLiveState["parties"][number] | null;
+  elected: number | null;
+};
+
+const number = new Intl.NumberFormat("fr-CA");
+const percent = new Intl.NumberFormat("fr-CA", {
+  maximumFractionDigits: 1,
+});
+
+function partyColor(abbreviation: string): string {
+  switch (abbreviation) {
+    case "PQ":
+      return "#2b63ad";
+    case "PLQ":
+    case "PLQ/QLP":
+      return "#d43a3a";
+    case "PCOQ":
+      return "#5f82bd";
+    case "CAQ":
+    case "ÉCF-CAQ":
+      return "#43a6a6";
+    case "QS":
+      return "#e4782f";
+    default:
+      return "#85857e";
+  }
+}
+
+function formatTimestamp(value: string): string {
+  const parsed = new Date(value.replace(/,(\d{3})/, ".$1"));
+  if (Number.isNaN(parsed.valueOf())) return value;
+  return new Intl.DateTimeFormat("fr-CA", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(parsed);
+}
+
+function partyRows(state: PublicLiveState) {
+  const ordered = [...state.parties].sort(
+    (a, b) =>
+      b.seatsLeading - a.seatsLeading ||
+      b.votePct - a.votePct ||
+      b.votes - a.votes,
+  );
+  return ordered;
+}
+
+function PartySummary({ parties, label, featured = false, replay = false }: {
+  parties: readonly DisplayParty[];
+  label: string;
+  featured?: boolean;
+  replay?: boolean;
+}) {
+  return (
+    <section className={featured ? "partySummary partySummary--featured" : "partySummary"} aria-label={label}>
+      {parties.map((party) => {
+        const media = PARTY_MEDIA.get(party.abbreviation);
+        const total = party.results?.seatsLeading ?? null;
+        const leading = total !== null && party.elected !== null ? Math.max(0, total - party.elected) : null;
+        if (featured) return (
+          <article className="partyColumn" key={party.abbreviation} aria-label={party.name}>
+            <div className={party.abbreviation === "PCOQ" ? "partyBrand partyBrand--conservative" : "partyBrand"}>
+              {media ? <img src={`/parties/${media.logo}`} alt={party.name} width={170} height={64} /> : <strong>{party.name}</strong>}
+              {party.abbreviation === "PCOQ" ? <span aria-hidden="true">CONSERVATEUR</span> : null}
+            </div>
+            <div className="partySeatTotal">
+              {media && !replay ? <img className="partyPortrait" src={`/parties/${media.portrait}`} alt={media.representative} width={64} height={64} /> : null}
+              <strong aria-label={`${total ?? "En attente"} sièges élus ou en tête`}>{total ?? "–"}</strong>
+            </div>
+            <div className="partySeatCounts">
+              <div>{party.elected ?? "–"} élu(e)</div>
+              <div>{leading ?? "–"} en tête</div>
+            </div>
+            <div className="partySeatBar" role="img" aria-label={`${party.elected ?? "En attente"} élus, ${leading ?? "En attente"} en tête sur 127 sièges. Majorité : 64.`}>
+              <span className="partyBarElected" style={{ width: `${(party.elected ?? 0) / 127 * 100}%`, backgroundColor: partyColor(party.abbreviation) }} />
+              <span className="partyBarLeading" style={{ width: `${(leading ?? 0) / 127 * 100}%`, backgroundColor: partyColor(party.abbreviation) }} />
+              <span className="partyMajorityMarker" />
+            </div>
+            <div className="partyVoteTotals">
+              <div>{party.results ? number.format(party.results.votes) : "–"} votes</div>
+              <div>{party.results ? `${percent.format(party.results.votePct)} %` : "–"}</div>
+            </div>
+          </article>
+        );
+        return (
+        <article className="partyCard" key={party.abbreviation}>
+          <div className="partyIdentity">
+            <span
+              className="partySwatch"
+              style={{ backgroundColor: partyColor(party.abbreviation) }}
+              aria-hidden="true"
+            />
+            <div>
+              <strong>{party.abbreviation}</strong>
+              <span>{party.name}</span>
+            </div>
+          </div>
+          <div className="partyMetrics">
+            <div>
+              <strong>{party.results?.seatsLeading ?? "–"}</strong>
+              <span>en tête</span>
+            </div>
+            <div>
+              <strong>{party.results ? `${percent.format(party.results.votePct)} %` : "–"}</strong>
+              <span>vote</span>
+            </div>
+          </div>
+        </article>
+        );
+      })}
+    </section>
+  );
+}
+
+export function LiveResults({ ridingMetadata, replayMode = false }: {
+  ridingMetadata: readonly { id: number; name: string }[];
+  replayMode?: boolean;
+}) {
+  const [state, setState] = useState<PublicLiveState | null>(null);
+  const [selectedRidingId, setSelectedRidingId] = useState<number | null>(null);
+  const [connectionError, setConnectionError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let streamConnected = false;
+    let polling = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    function acceptState(next: PublicLiveState) {
+      if (cancelled) return;
+      setState((current) =>
+        current?.sourceSha256 === next.sourceSha256 ? current : next,
+      );
+      setConnectionError(false);
+
+    }
+
+    async function poll() {
+      if (polling || cancelled) return;
+      polling = true;
+      try {
+        const response = await fetch(LIVE_API_URL, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!response.ok) throw new Error(`live API HTTP ${response.status}`);
+
+        const parsed = PublicLiveStateSchema.safeParse(await response.json());
+        if (!parsed.success) throw new Error("invalid live state");
+
+        if (!streamConnected) acceptState(parsed.data);
+      } catch {
+        if (!cancelled) setConnectionError(true);
+      } finally {
+        polling = false;
+        if (!cancelled && !streamConnected)
+          timeout = setTimeout(() => {
+            timeout = undefined;
+            void poll();
+          }, POLL_MS);
+      }
+    }
+
+    const stream =
+      LIVE_API_URL === "/api/live.json"
+        ? new EventSource("/api/live/stream")
+        : null;
+    if (stream) {
+      stream.onopen = () => {
+        streamConnected = true;
+        setConnectionError(false);
+        if (timeout) clearTimeout(timeout);
+        timeout = undefined;
+      };
+      stream.onmessage = (event) => {
+        try {
+          const parsed = PublicLiveStateSchema.safeParse(
+            JSON.parse(event.data),
+          );
+          if (parsed.success) acceptState(parsed.data);
+        } catch {
+          setConnectionError(true);
+        }
+      };
+      stream.onerror = () => {
+        streamConnected = false;
+        if (!cancelled) setConnectionError(true);
+        if (!timeout) void poll();
+      };
+    } else void poll();
+    return () => {
+      cancelled = true;
+      stream?.close();
+      if (timeout) clearTimeout(timeout);
+    };
+  }, []);
+
+  const parties = useMemo(() => state
+    ? partyRows(state).map((party) => ({ abbreviation: party.abbreviation, name: party.name, results: party, elected: state.ridings.filter((riding) => riding.final && riding.leaderParty === party.abbreviation).length }))
+    : WAITING_PARTIES.map((party) => ({ ...party, results: null, elected: null })), [state]);
+  const otherParties = parties.filter((party) => !FEATURED_PARTIES.has(party.abbreviation));
+  const ridings = ridingMetadata.map((metadata) =>
+    state?.ridings.find((riding) => riding.id === metadata.id) ?? metadata,
+  );
+  const selectedRiding = state?.ridings.find((riding) => riding.id === selectedRidingId) ?? null;
+  const selectedName = ridings.find((riding) => riding.id === selectedRidingId)?.name ?? "";
+
+  return (
+    <>
+      <section className="liveStatus" aria-live="polite">
+        <div className="sourceStatus">
+          {state ? (
+            <>
+              <span className="liveDot" aria-hidden="true" />
+              <strong>{state.replay ? `Rejeu historique · ${state.replay.election}` : "Officiel · Élections Québec"}</strong>
+              <span>Mis à jour à {formatTimestamp(state.sourceUpdatedAt)}</span>
+              <span>{number.format(state.pollsReported)} / {number.format(state.pollsTotal)} {state.replay ? "unités transposées" : "bureaux"}</span>
+              <span>{percent.format(state.reportingPct)} % dépouillé</span>
+            </>
+          ) : (
+            <>
+              <strong>{replayMode ? "Chargement du rejeu historique" : "En attente du premier résultat officiel"}</strong>
+              <span>{replayMode ? "Données historiques · carte 2026" : "Mise à jour automatique · Élections Québec"}</span>
+            </>
+          )}
+        </div>
+        {connectionError ? (
+          <span className="connectionNote">
+            {state ? "Reconnexion en cours · dernière donnée valide conservée" : "Reconnexion en cours"}
+          </span>
+        ) : null}
+      </section>
+
+      <PartySummary
+        parties={parties.filter((party) => FEATURED_PARTIES.has(party.abbreviation))}
+        label="Sommaire des partis"
+        featured
+        replay={Boolean(state?.replay)}
+      />
+      <a className="detailedResultsLink" href="#riding-results">Résultats détaillés ↗</a>
+      {otherParties.length > 0 ? (
+        <Collapsible.Root className="otherParties">
+          <Collapsible.Trigger className="otherPartiesTrigger">
+            Autres ({otherParties.length})
+            <span className="disclosureArrow" aria-hidden="true">⌄</span>
+          </Collapsible.Trigger>
+          <Collapsible.Panel>
+            <PartySummary parties={otherParties} label="Autres partis" />
+          </Collapsible.Panel>
+        </Collapsible.Root>
+      ) : null}
+
+      <section className="majorityBand" aria-label="Seuil de majorité">
+        <strong>64</strong>
+        <span>sièges pour une majorité</span>
+        <span className="modelSeparation">Modèle : non publié</span>
+      </section>
+
+      <ResultsViewTabs
+        ridings={state?.ridings ?? []}
+        replay={Boolean(state?.replay)}
+        onRidingSelect={setSelectedRidingId}
+      />
+
+      <section
+        className="resultsTable"
+        id="riding-results"
+        aria-label="Résultats par circonscription"
+      >
+        <div className="sectionHeading">
+          <div>
+            <p className="statusKicker">{state?.replay ? "Rejeu historique sur la carte 2026" : "Officiel"}</p>
+            <h2>Circonscriptions</h2>
+          </div>
+          <span>{ridings.length} sièges</span>
+        </div>
+        <div className="tableScroller">
+          <table className="ridingTable">
+            <thead>
+              <tr>
+                <th>Circonscription</th>
+                <th>En tête</th>
+                <th>Vote</th>
+                <th>Bureaux</th>
+                <th>État</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...ridings]
+                .sort((a, b) => a.name.localeCompare(b.name, "fr"))
+                .map((riding) => {
+                  const result = state?.ridings.find((result) => result.id === riding.id);
+                  const leader = result?.candidates[0];
+                  return (
+                    <tr key={riding.id}>
+                      <td>
+                        <button
+                          className="ridingLink"
+                          type="button"
+                          onClick={() => setSelectedRidingId(riding.id)}
+                        >
+                          {riding.name}
+                        </button>
+                      </td>
+                      <td>{result?.leaderParty ?? "–"}</td>
+                      <td>
+                        {leader && leader.votes > 0
+                          ? `${percent.format(leader.votePct)} %`
+                          : "–"}
+                      </td>
+                      <td>
+                        {result ? `${result.pollsReported}/${result.pollsTotal}` : "–"}
+                      </td>
+                      <td>
+                        {result?.final
+                          ? "Final"
+                          : result && result.pollsReported > 0
+                            ? "En cours"
+                            : "Aucun résultat"}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <RidingDialog
+        riding={selectedRiding}
+        name={selectedName}
+        replay={Boolean(state?.replay)}
+        open={selectedRidingId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedRidingId(null);
+        }}
+      />
+    </>
+  );
+}

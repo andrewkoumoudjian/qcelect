@@ -1,11 +1,15 @@
 # Generated SVG maps
 
-Do not hand-edit generated election maps.
+These assets are generated deterministically from the official Élections Québec
+2026 electoral geography with `pnpm build:map`. Do not hand-edit them.
 
-Expected files:
+- `quebec.svg` — all 127 ridings, using official `CO_CEP` as
+  `data-riding`.
+- `montreal.svg` — explicit Montréal/Laval inset for dense urban ridings.
+- `quebec-city.svg` — explicit Québec City inset.
+- `cartogram.svg` — 127 equal-area cells, one per riding.
 
-- `quebec.svg` — geographic 2026 electoral map with `data-riding="<numeroCirconscription>"` on every interactive path.
-- `cartogram.svg` — one equal-area cell per one of the 127 seats.
-- later: Montréal and Québec City inset assets if the primary SVG does not make dense ridings legible.
-
-The web runtime loads these once and only mutates result-state data attributes.
+Every interactive geometry carries both `data-riding="<CO_CEP>"` and an
+`aria-label` using the official `NM_CEP` riding name. The cartogram layout is
+computed offline from geographic centres and saved as SVG; no layout work runs
+in the browser.

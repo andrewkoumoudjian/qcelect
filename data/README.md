@@ -1,14 +1,10 @@
 # Data assets
 
-This directory is for small static/generated assets needed by the application.
+Small static/generated assets required by production live here.
 
-Planned generated assets:
+- `ridings-2026.json` is the canonical 127-riding ID/name manifest generated
+  from the official 2026 Élections Québec geography.
+- SVG maps are generated into `apps/web/public/maps/` from the same source.
 
-- official 2026 riding metadata;
-- simplified geographic SVG;
-- Montréal inset SVG;
-- Québec City inset SVG;
-- 127-seat cartogram SVG;
-- normalized candidate metadata.
-
-Large historical raw archives should be downloaded reproducibly by `research/` and should not be duplicated in Git.
+Large historical raw archives remain reproducibly downloadable under
+`research/` and are not duplicated in Git.

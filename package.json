@@ -1,15 +1,32 @@
 {
   "name": "qcelect",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
+    "dev": "pnpm dev:web",
+    "db:migrate": "tsx scripts/db.ts migrate",
+    "db:status": "tsx scripts/db.ts status",
     "dev:web": "pnpm --filter @qcelect/web dev",
     "dev:worker": "pnpm --filter @qcelect/worker dev",
     "build:map": "node scripts/build-map.mjs",
-    "typecheck": "pnpm -r typecheck",
-    "check:architecture": "node scripts/check-boundaries.mjs"
+    "check:maps": "node scripts/check-maps.mjs",
+    "test": "vitest run",
+    "lint": "oxlint apps/web/src worker/src packages tests scripts",
+    "research:validate": "uv run --project research --extra dev python research/scripts/validate_official_data.py",
+    "research:test": "uv run --project research --extra dev python -m pytest research/tests",
+    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.tests.json",
+    "check:architecture": "node scripts/check-boundaries.mjs",
+    "replay": "tsx scripts/replay.ts",
+    "dev:replay": "QCELECT_REPLAY_FILE=data/generated/replay/snapshot.json pnpm --filter @qcelect/web exec next dev --hostname 127.0.0.1 --port 3002"
   },
   "devDependencies": {
-    "d3-geo": "^3.1.1"
+    "@libsql/client": "^0.18.0",
+    "@oxlint/plugins": "1.87.0",
+    "@types/node": "24.19.1",
+    "oxlint": "1.87.0",
+    "tsx": "^4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.0"
   }
 }

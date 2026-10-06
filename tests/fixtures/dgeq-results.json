@@ -1,0 +1,115 @@
+{
+  "statistiques": {
+    "partisPolitiques": [
+      {
+        "numeroPartiPolitique": 8,
+        "nomPartiPolitique": "Parti québécois",
+        "abreviationPartiPolitique": "PQ",
+        "nbVoteTotal": 1200,
+        "tauxVoteTotal": 48,
+        "nbCirconscriptionsEnAvance": 1,
+        "tauxCirconscriptionsEnAvance": 50
+      },
+      {
+        "numeroPartiPolitique": 6,
+        "nomPartiPolitique": "Parti libéral du Québec/Quebec Liberal Party",
+        "abreviationPartiPolitique": "PLQ/QLP",
+        "nbVoteTotal": 900,
+        "tauxVoteTotal": 36,
+        "nbCirconscriptionsEnAvance": 0,
+        "tauxCirconscriptionsEnAvance": 0
+      }
+    ],
+    "nbBureauVote": 200,
+    "nbBureauVoteRempli": 50,
+    "tauxBureauVoteRempli": 25,
+    "nbVoteValide": 2500,
+    "nbVoteRejete": 20,
+    "nbVoteExerce": 2520,
+    "nbElecteurInscrit": 5000,
+    "tauxParticipationTotal": 50.4,
+    "nbCirconscription": 2,
+    "nbCirconscriptionAvecResultat": 2,
+    "nbCirconscriptionSansResultat": 0,
+    "tauxCirconscriptionSansResultat": 0,
+    "isResultatsFinaux": false,
+    "iso8601DateMAJ": "2026-10-05T21:00:00-04:00",
+    "upstreamMayAddFields": true
+  },
+  "circonscriptions": [
+    {
+      "numeroCirconscription": 1,
+      "nomCirconscription": "Alpha",
+      "iso8601DateMAJ": "2026-10-05T21:00:00-04:00",
+      "isResultatsFinaux": false,
+      "nbBureauComplete": 30,
+      "nbBureauTotal": 100,
+      "nbVoteValide": 1500,
+      "nbVoteRejete": 10,
+      "nbVoteExerce": 1510,
+      "nbElecteurInscrit": 3000,
+      "tauxVoteValide": 99.34,
+      "tauxVoteRejete": 0.66,
+      "tauxParticipation": 50.33,
+      "candidats": [
+        {
+          "numeroCandidat": 10,
+          "nom": "Deuxième",
+          "prenom": "B",
+          "numeroPartiPolitique": 6,
+          "abreviationPartiPolitique": "PLQ/QLP",
+          "nbVoteTotal": 600,
+          "tauxVote": 40,
+          "nbVoteAvance": 100
+        },
+        {
+          "numeroCandidat": 11,
+          "nom": "Premier",
+          "prenom": "A",
+          "numeroPartiPolitique": 8,
+          "abreviationPartiPolitique": "PQ",
+          "nbVoteTotal": 900,
+          "tauxVote": 60,
+          "nbVoteAvance": 150
+        }
+      ]
+    },
+    {
+      "numeroCirconscription": 2,
+      "nomCirconscription": "Beta",
+      "iso8601DateMAJ": "2026-10-05T21:00:00-04:00",
+      "isResultatsFinaux": false,
+      "nbBureauComplete": 20,
+      "nbBureauTotal": 100,
+      "nbVoteValide": 1000,
+      "nbVoteRejete": 10,
+      "nbVoteExerce": 1010,
+      "nbElecteurInscrit": 2000,
+      "tauxVoteValide": 99.01,
+      "tauxVoteRejete": 0.99,
+      "tauxParticipation": 50.5,
+      "candidats": [
+        {
+          "numeroCandidat": 20,
+          "nom": "Un",
+          "prenom": "C",
+          "numeroPartiPolitique": 8,
+          "abreviationPartiPolitique": "PQ",
+          "nbVoteTotal": 500,
+          "tauxVote": 50,
+          "nbVoteAvance": 50
+        },
+        {
+          "numeroCandidat": 21,
+          "nom": "Deux",
+          "prenom": "D",
+          "numeroPartiPolitique": 6,
+          "abreviationPartiPolitique": "PLQ/QLP",
+          "nbVoteTotal": 500,
+          "tauxVote": 50,
+          "nbVoteAvance": 45
+        }
+      ]
+    }
+  ]
+}

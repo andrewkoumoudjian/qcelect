@@ -1,27 +1,37 @@
-import type { DgeqResults, PublicLiveState } from "@qcelect/schema";
+import type { DgeqResults, PublicLiveState, ReplayMetadata } from "@qcelect/schema";
 
 function finitePct(numerator: number, denominator: number): number {
-  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return 0;
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return 0;
+  }
   return Math.max(0, Math.min(100, (numerator / denominator) * 100));
 }
 
-function leaderParty(candidates: DgeqResults["circonscriptions"][number]["candidats"]): string | null {
+function leaderParty(
+  candidates: DgeqResults["circonscriptions"][number]["candidats"],
+): string | null {
   if (candidates.length === 0) return null;
-  const leader = candidates.reduce((best, candidate) =>
-    candidate.nbVoteTotal > best.nbVoteTotal ? candidate : best
+
+  const ordered = [...candidates].sort(
+    (a, b) => b.nbVoteTotal - a.nbVoteTotal || a.numeroCandidat - b.numeroCandidat,
   );
-  return leader.nbVoteTotal > 0 ? leader.abreviationPartiPolitique ?? null : null;
+  const first = ordered[0];
+  const second = ordered[1];
+
+  if (!first || first.nbVoteTotal <= 0) return null;
+  if (second && second.nbVoteTotal === first.nbVoteTotal) return null;
+  return first.abreviationPartiPolitique ?? null;
 }
 
 export function normalizeDgeqResults(
   source: DgeqResults,
-  metadata: { ingestedAt: string; sourceSha256: string },
+  metadata: { ingestedAt: string; sourceSha256: string; replay?: ReplayMetadata },
 ): PublicLiveState {
   const stats = source.statistiques;
 
-  return {
+  const state: PublicLiveState = {
     schemaVersion: "qcelect.live.v1",
-    source: "elections-quebec",
+    source: metadata.replay ? "historical-replay" : "elections-quebec",
     sourceUpdatedAt: stats.iso8601DateMAJ,
     ingestedAt: metadata.ingestedAt,
     sourceSha256: metadata.sourceSha256,
@@ -64,8 +74,15 @@ export function normalizeDgeqResults(
           votePct: candidate.tauxVote,
           leadVotes: candidate.nbVoteAvance,
         }))
-        .sort((a, b) => b.votes - a.votes),
+        .sort(
+          (a, b) =>
+            b.votes - a.votes ||
+            a.lastName.localeCompare(b.lastName, "fr") ||
+            a.id - b.id,
+        ),
       projection: null,
     })),
   };
+  if (metadata.replay) state.replay = metadata.replay;
+  return state;
 }

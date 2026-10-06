@@ -1,0 +1,516 @@
+{
+  "source": "https://donnees.electionsquebec.qc.ca/autres/provincial/circonscriptions_electorales_sans_eau_2026.json",
+  "targetDelimitation": 2026,
+  "sourceGeometryUpdatedEpochMs": 1781654400000,
+  "ridingCount": 127,
+  "ridings": [
+    {
+      "id": 117,
+      "name": "Mégantic"
+    },
+    {
+      "id": 119,
+      "name": "Saint-François"
+    },
+    {
+      "id": 121,
+      "name": "Sherbrooke"
+    },
+    {
+      "id": 127,
+      "name": "Orford"
+    },
+    {
+      "id": 131,
+      "name": "Daniel-Johnson"
+    },
+    {
+      "id": 137,
+      "name": "Richmond"
+    },
+    {
+      "id": 139,
+      "name": "Marie-Lacoste-Gérin-Lajoie"
+    },
+    {
+      "id": 141,
+      "name": "Drummond-Bois-Francs"
+    },
+    {
+      "id": 147,
+      "name": "Arthabaska-L'Érable"
+    },
+    {
+      "id": 151,
+      "name": "Nicolet-Bécancour"
+    },
+    {
+      "id": 157,
+      "name": "Brome-Missisquoi"
+    },
+    {
+      "id": 159,
+      "name": "Granby"
+    },
+    {
+      "id": 161,
+      "name": "Iberville"
+    },
+    {
+      "id": 167,
+      "name": "Saint-Jean"
+    },
+    {
+      "id": 171,
+      "name": "Huntingdon"
+    },
+    {
+      "id": 179,
+      "name": "Beauharnois"
+    },
+    {
+      "id": 181,
+      "name": "Soulanges"
+    },
+    {
+      "id": 187,
+      "name": "Vaudreuil"
+    },
+    {
+      "id": 191,
+      "name": "Châteauguay"
+    },
+    {
+      "id": 197,
+      "name": "Sanguinet"
+    },
+    {
+      "id": 199,
+      "name": "La Prairie"
+    },
+    {
+      "id": 201,
+      "name": "La Pinière"
+    },
+    {
+      "id": 207,
+      "name": "Chambly"
+    },
+    {
+      "id": 211,
+      "name": "Vachon"
+    },
+    {
+      "id": 217,
+      "name": "Pierre-Laporte"
+    },
+    {
+      "id": 219,
+      "name": "Marie-Victorin"
+    },
+    {
+      "id": 221,
+      "name": "Taillon"
+    },
+    {
+      "id": 227,
+      "name": "Montarville"
+    },
+    {
+      "id": 231,
+      "name": "Verchères"
+    },
+    {
+      "id": 237,
+      "name": "Borduas"
+    },
+    {
+      "id": 239,
+      "name": "Saint-Hyacinthe"
+    },
+    {
+      "id": 241,
+      "name": "Richelieu"
+    },
+    {
+      "id": 247,
+      "name": "Verdun"
+    },
+    {
+      "id": 251,
+      "name": "Marguerite-Bourgeoys"
+    },
+    {
+      "id": 257,
+      "name": "Marquette"
+    },
+    {
+      "id": 259,
+      "name": "Jacques-Cartier"
+    },
+    {
+      "id": 261,
+      "name": "Nelligan"
+    },
+    {
+      "id": 267,
+      "name": "Robert-Baldwin"
+    },
+    {
+      "id": 271,
+      "name": "Saint-Laurent"
+    },
+    {
+      "id": 277,
+      "name": "D'Arcy-McGee"
+    },
+    {
+      "id": 279,
+      "name": "Notre-Dame-de-Grâce"
+    },
+    {
+      "id": 281,
+      "name": "Saint-Henri-Sainte-Anne"
+    },
+    {
+      "id": 287,
+      "name": "Sainte-Marie-Saint-Jacques"
+    },
+    {
+      "id": 291,
+      "name": "Westmount-Saint-Louis"
+    },
+    {
+      "id": 297,
+      "name": "Mont-Royal-Outremont"
+    },
+    {
+      "id": 299,
+      "name": "Acadie"
+    },
+    {
+      "id": 301,
+      "name": "Maurice-Richard"
+    },
+    {
+      "id": 307,
+      "name": "Laurier-Dorion"
+    },
+    {
+      "id": 311,
+      "name": "Gouin"
+    },
+    {
+      "id": 313,
+      "name": "Mercier"
+    },
+    {
+      "id": 317,
+      "name": "Hochelaga-Maisonneuve"
+    },
+    {
+      "id": 319,
+      "name": "Rosemont"
+    },
+    {
+      "id": 321,
+      "name": "Viau"
+    },
+    {
+      "id": 327,
+      "name": "Bourassa-Sauvé"
+    },
+    {
+      "id": 331,
+      "name": "Jeanne-Mance-Viger"
+    },
+    {
+      "id": 337,
+      "name": "Camille-Laurin"
+    },
+    {
+      "id": 339,
+      "name": "LaFontaine"
+    },
+    {
+      "id": 341,
+      "name": "Pointe-aux-Trembles"
+    },
+    {
+      "id": 347,
+      "name": "Laval-des-Rapides"
+    },
+    {
+      "id": 351,
+      "name": "Chomedey"
+    },
+    {
+      "id": 357,
+      "name": "Fabre"
+    },
+    {
+      "id": 359,
+      "name": "Sainte-Rose"
+    },
+    {
+      "id": 569,
+      "name": "Vimont-Auteuil"
+    },
+    {
+      "id": 571,
+      "name": "Mille-Îles"
+    },
+    {
+      "id": 577,
+      "name": "Groulx"
+    },
+    {
+      "id": 581,
+      "name": "Deux-Montagnes"
+    },
+    {
+      "id": 587,
+      "name": "Mirabel"
+    },
+    {
+      "id": 589,
+      "name": "Argenteuil"
+    },
+    {
+      "id": 591,
+      "name": "Bellefeuille"
+    },
+    {
+      "id": 597,
+      "name": "Saint-Jérôme"
+    },
+    {
+      "id": 601,
+      "name": "Les Plaines"
+    },
+    {
+      "id": 607,
+      "name": "Blainville"
+    },
+    {
+      "id": 609,
+      "name": "Terrebonne"
+    },
+    {
+      "id": 611,
+      "name": "Masson"
+    },
+    {
+      "id": 617,
+      "name": "Repentigny"
+    },
+    {
+      "id": 621,
+      "name": "L'Assomption"
+    },
+    {
+      "id": 627,
+      "name": "Berthier"
+    },
+    {
+      "id": 629,
+      "name": "Joliette"
+    },
+    {
+      "id": 631,
+      "name": "Rousseau"
+    },
+    {
+      "id": 637,
+      "name": "Prévost"
+    },
+    {
+      "id": 641,
+      "name": "Bertrand"
+    },
+    {
+      "id": 649,
+      "name": "Labelle"
+    },
+    {
+      "id": 651,
+      "name": "Hull"
+    },
+    {
+      "id": 657,
+      "name": "Pontiac"
+    },
+    {
+      "id": 661,
+      "name": "Gatineau"
+    },
+    {
+      "id": 667,
+      "name": "Chapleau"
+    },
+    {
+      "id": 669,
+      "name": "Papineau"
+    },
+    {
+      "id": 671,
+      "name": "Rouyn-Noranda-Témiscamingue"
+    },
+    {
+      "id": 681,
+      "name": "Abitibi-Ouest"
+    },
+    {
+      "id": 689,
+      "name": "Abitibi-Est"
+    },
+    {
+      "id": 691,
+      "name": "Trois-Rivières"
+    },
+    {
+      "id": 693,
+      "name": "Maskinongé"
+    },
+    {
+      "id": 697,
+      "name": "Laviolette-Saint-Maurice"
+    },
+    {
+      "id": 701,
+      "name": "Champlain"
+    },
+    {
+      "id": 707,
+      "name": "Jean-Talon"
+    },
+    {
+      "id": 709,
+      "name": "Louis-Hébert"
+    },
+    {
+      "id": 727,
+      "name": "Portneuf"
+    },
+    {
+      "id": 729,
+      "name": "La Peltrie"
+    },
+    {
+      "id": 749,
+      "name": "Vanier-Les Rivières"
+    },
+    {
+      "id": 751,
+      "name": "Taschereau"
+    },
+    {
+      "id": 757,
+      "name": "Jean-Lesage"
+    },
+    {
+      "id": 761,
+      "name": "Montmorency"
+    },
+    {
+      "id": 767,
+      "name": "Charlesbourg"
+    },
+    {
+      "id": 769,
+      "name": "Chauveau"
+    },
+    {
+      "id": 771,
+      "name": "Charlevoix-Côte-de-Beaupré"
+    },
+    {
+      "id": 777,
+      "name": "Beauce-Sud"
+    },
+    {
+      "id": 781,
+      "name": "Beauce-Nord"
+    },
+    {
+      "id": 787,
+      "name": "Lotbinière-Frontenac"
+    },
+    {
+      "id": 789,
+      "name": "Chutes-de-la-Chaudière"
+    },
+    {
+      "id": 791,
+      "name": "Lévis"
+    },
+    {
+      "id": 797,
+      "name": "Bellechasse"
+    },
+    {
+      "id": 799,
+      "name": "Côte-du-Sud"
+    },
+    {
+      "id": 801,
+      "name": "Rivière-du-Loup–Témiscouata–Les Basques"
+    },
+    {
+      "id": 803,
+      "name": "Rimouski"
+    },
+    {
+      "id": 807,
+      "name": "Matane-Matapédia-Mitis"
+    },
+    {
+      "id": 809,
+      "name": "Gaspé"
+    },
+    {
+      "id": 811,
+      "name": "Îles-de-la-Madeleine"
+    },
+    {
+      "id": 813,
+      "name": "Duplessis"
+    },
+    {
+      "id": 817,
+      "name": "René-Lévesque"
+    },
+    {
+      "id": 819,
+      "name": "Dubuc"
+    },
+    {
+      "id": 821,
+      "name": "Chicoutimi"
+    },
+    {
+      "id": 823,
+      "name": "Jonquière"
+    },
+    {
+      "id": 827,
+      "name": "Lac-Saint-Jean"
+    },
+    {
+      "id": 829,
+      "name": "Roberval"
+    },
+    {
+      "id": 831,
+      "name": "Ungava"
+    },
+    {
+      "id": 833,
+      "name": "Anjou-Louis-Riel"
+    },
+    {
+      "id": 837,
+      "name": "Bonaventure"
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import io
 from pathlib import Path
 from typing import Iterable
 
+import numpy as np
 import pandas as pd
 
 GENERAL_ELECTION_ARCHIVES: dict[str, dict[str, str]] = {
@@ -27,9 +28,12 @@ GENERAL_ELECTION_ARCHIVES: dict[str, dict[str, str]] = {
     "1998-11-30": {"slug": "gen1998-11-30", "format": "xls"},
 }
 
-SPECIAL_ROW_MARKERS = (
+AGGREGATE_ROW_MARKERS = (
     "TOTAL DU SECTEUR",
     "GRAND TOTAL",
+)
+
+SPECIAL_VOTE_MARKERS = (
     "VOTE DES DÉTENUS",
     "VOTE DES DETENUS",
     "VOTE HORS QUÉBEC",
@@ -37,6 +41,8 @@ SPECIAL_ROW_MARKERS = (
     "ÉLECTEURS HORS",
     "ELECTEURS HORS",
 )
+
+SPECIAL_ROW_MARKERS = (*AGGREGATE_ROW_MARKERS, *SPECIAL_VOTE_MARKERS)
 
 
 def archive_url(election_date: str) -> str:
@@ -57,6 +63,14 @@ def _decode_bytes(raw: bytes) -> str:
 
 
 def _rows_from_text(text: str) -> list[list[str]]:
+    # Summary/footer records have different widths and can defeat Sniffer.
+    # Prefer the declared DGEQ header, including files with metadata prefixes.
+    for line in text.splitlines()[:25]:
+        for delimiter in (",", ";", "\t"):
+            fields = next(csv.reader([line], delimiter=delimiter))
+            first = fields[0].strip().rstrip(":").lower() if fields else ""
+            if first in {"code", "header"} and "S.V." in fields:
+                return list(csv.reader(io.StringIO(text), delimiter=delimiter))
     sample = text[:8192]
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=",;\t")
@@ -91,12 +105,7 @@ def _parse_election_year(rows: list[list[str]]) -> int | None:
 
 
 def _parse_modern(rows: list[list[str]]) -> pd.DataFrame:
-    """Parse the 2014+ per-riding files with the Header: prefix.
-
-    The historical files can include a metadata/party row between the header
-    and first numeric record, so rows are selected by width and content rather
-    than by one hard-coded starting index.
-    """
+    """Parse the 2014+ per-riding files with the Header: prefix."""
 
     if len(rows) < 2:
         raise ValueError("DGEQ file has fewer than two rows")
@@ -105,7 +114,9 @@ def _parse_modern(rows: list[list[str]]) -> pd.DataFrame:
     if not header_row or header_row[0].strip().rstrip(":").lower() != "header":
         raise ValueError("modern DGEQ file is missing Header: prefix")
 
-    headers = [column.strip() for column in header_row[1:]]
+    # 2014 exports commonly end the header and data records with a trailing
+    # comma. Strip it before measuring width or every valid row is shifted.
+    headers = [column.strip() for column in _strip_trailing_garbage(header_row[1:])]
     width = len(headers)
     records: list[list[str]] = []
 
@@ -117,9 +128,11 @@ def _parse_modern(rows: list[list[str]]) -> pd.DataFrame:
             continue
         if _is_special_row(row[0]):
             continue
-        if len(row) < width:
-            continue
-        records.append(row[:width])
+        if len(row) != width:
+            raise ValueError(
+                f"modern DGEQ row width {len(row)} does not match header {width}"
+            )
+        records.append(row)
 
     frame = pd.DataFrame(records, columns=headers)
     year = _parse_election_year(rows)
@@ -129,12 +142,7 @@ def _parse_modern(rows: list[list[str]]) -> pd.DataFrame:
 
 
 def _legacy_candidate_names(header_row: list[str]) -> list[str]:
-    """Recover candidate labels from legacy per-riding CSV headers.
-
-    Legacy files vary by year. Candidate labels occur after structural empty
-    slots and before B.V./B.R. fields. We retain non-empty labels and remove
-    known structural/result labels.
-    """
+    """Recover candidate labels from legacy per-riding CSV headers."""
 
     structural = {
         "CIRCONSCRIPTION",
@@ -166,8 +174,6 @@ def _parse_legacy(rows: list[list[str]]) -> pd.DataFrame:
     records: list[list[str]] = []
     expected = 4 + len(candidates) + 2
 
-    # Old exports commonly have header, party and blank metadata rows. Instead
-    # of depending on the exact count, accept only records with enough fields.
     for raw_row in rows[2:]:
         row = _strip_trailing_garbage(raw_row)
         if not row or _is_special_row(row[0]) or len(row) < expected:
@@ -175,11 +181,8 @@ def _parse_legacy(rows: list[list[str]]) -> pd.DataFrame:
 
         municipality, code, sv, electors = row[:4]
         candidate_votes = row[4 : 4 + len(candidates)]
-        # B.V./B.R. are the final two real fields after trailing garbage removal.
         bv, br = row[-2:]
-        records.append(
-            [municipality, code, sv, electors, *candidate_votes, bv, br]
-        )
+        records.append([municipality, code, sv, electors, *candidate_votes, bv, br])
 
     columns = [
         "Municipalité",
@@ -215,24 +218,26 @@ def normalize_numeric(
     frame: pd.DataFrame,
     candidate_columns: Iterable[str],
 ) -> pd.DataFrame:
-    """Normalize core numeric columns and reject impossible turnout rows."""
+    """Normalize numeric fields without inventing turnout for missing electors."""
 
     result = frame.copy()
-    numeric = ["É.I.", "B.V.", "B.R.", *candidate_columns]
+    candidates = list(candidate_columns)
+    numeric = ["É.I.", "B.V.", "B.R.", *candidates]
     for column in numeric:
         if column in result:
             result[column] = pd.to_numeric(result[column], errors="coerce")
 
-    result = result[
-        result["É.I."].notna()
-        & result["B.V."].notna()
-        & (result["É.I."] > 0)
-        & (result["B.V."] > 0)
-    ].copy()
-    result["turnout"] = result["B.V."] / result["É.I."]
+    # A row with missing/zero electors can still contain real special-category
+    # votes. Keep it, but its turnout must remain unknown rather than inf.
+    result = result[result["B.V."].notna() & (result["B.V."] >= 0)].copy()
+    result["turnout"] = np.where(
+        result["É.I."].notna() & (result["É.I."] > 0),
+        result["B.V."] / result["É.I."],
+        np.nan,
+    )
 
-    if candidate_columns:
-        present = [c for c in candidate_columns if c in result.columns]
+    if candidates:
+        present = [column for column in candidates if column in result.columns]
         result["candidate_vote_sum"] = result[present].sum(axis=1)
         discrepancy = (result["candidate_vote_sum"] - result["B.V."]).abs()
         if not discrepancy.empty and discrepancy.max() != 0:

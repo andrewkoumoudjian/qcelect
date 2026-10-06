@@ -53,7 +53,31 @@ The public state is immutable per source update. Each accepted snapshot carries:
 - model artifact version;
 - projection/calibration version.
 
-Election-night history can be appended to D1/R2 later. It is not required to serve the current state.
+Local operation now uses the official libSQL TypeScript client, with optional
+Turso configuration. The narrow `ElectionRepository` adapter implements the
+existing ingestion store contract. Versioned SQL migrations carry a checksum
+ledger and apply each migration transactionally.
+
+Each accepted source hash has one unique official snapshot containing the full
+normalized riding, candidate and party state. A single atomic insert persists
+the complete official document, avoiding partial election writes. The original
+official JSON is immutable; the separate public JSON can acquire validated
+model output after evaluation. Model errors or malformed output cannot undo the
+official insert. A hash that already exists terminates before model evaluation.
+
+This first local slice stores normalized result documents rather than creating
+unused model tables. Relational metadata/projection tables remain subsequent
+work. Local historical replay now uses the same operational pipeline. Geometry stays in static assets.
+
+The Next.js Node adapter owns the local process loop and a memory cache. It polls
+serially with a ten-second fetch timeout and waits five seconds between checks.
+SSE subscribers receive changed snapshots immediately and a fifteen-second
+heartbeat. One global runtime is shared across HTTP/SSE routes; browser reads
+do not trigger database reads. Startup reloads the latest accepted state.
+
+Core normalization, ingestion and repository code is reusable by a future
+Cloudflare adapter. The existing deployed-worker entry still uses its KV
+adapter; no Cloudflare deployment or hosted database was touched.
 
 ## Production packages
 
@@ -113,3 +137,20 @@ Static/generated electoral assets: normalized candidate metadata, simplified SVG
 If projection artifacts are unavailable or inference fails, official results must continue to publish. The UI renders `projection: null` rather than substituting stale or fabricated numbers.
 
 If the source schema changes incompatibly, retain the last valid state and expose source-health metadata; do not publish partially parsed official totals.
+
+## Local replay adapter
+
+Offline preparation retains per-source-unit transposition allocations and checks
+them against the validated final riding/party totals. A cached crosswalk can be
+reused without doing geometry in production. The snapshot JSON includes source
+and crosswalk hashes, historical election, reporting fraction, seed and order.
+TypeScript validates that source through `ReplaySourceSchema`, then uses the
+existing ingestion transaction and model-failure isolation. Public source is
+`historical-replay`, with mandatory matching replay provenance.
+
+Replay uses a separate file database, election namespace, build directory and
+port. An active replay pointer selects previously recorded snapshots when
+rewinding; history remains immutable, duplicate hashes remain idempotent and
+cached projections are reused. The live namespace cannot activate this pointer.
+The replay app never starts a live upstream fetch. UI status identifies replay
+and unsupported electorate/rejected values stay unavailable.

@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+export const SourceValidatorsSchema = z.object({
+  etag: z.string().optional(),
+  lastModified: z.string().optional(),
+});
+export type SourceValidators = z.infer<typeof SourceValidatorsSchema>;
+export const DatabaseEnvironmentSchema = z.object({
+  TURSO_DATABASE_URL: z.string().optional(),
+  TURSO_AUTH_TOKEN: z.string().optional(),
+  QCELECT_REPLAY_FILE: z.string().optional(),
+});
+
+// The live feed sends turnout as a decimal string, or "n.d." when unavailable.
+const DgeqTurnoutSchema = z.union([
+  z.number().min(0).max(100),
+  z.literal("n.d.").transform(() => null),
+  z.string().regex(/^\d+(?:\.\d+)?$/).transform(Number).pipe(z.number().min(0).max(100)),
+]);
+
 export const DgeqCandidateSchema = z
   .object({
     numeroCandidat: z.number(),
@@ -27,7 +45,7 @@ export const DgeqRidingSchema = z
     nbElecteurInscrit: z.number(),
     tauxVoteValide: z.number(),
     tauxVoteRejete: z.number(),
-    tauxParticipation: z.number(),
+    tauxParticipation: DgeqTurnoutSchema,
     candidats: z.array(DgeqCandidateSchema),
   })
   .passthrough();
@@ -54,7 +72,7 @@ export const DgeqStatisticsSchema = z
     nbVoteRejete: z.number(),
     nbVoteExerce: z.number(),
     nbElecteurInscrit: z.number(),
-    tauxParticipationTotal: z.number(),
+    tauxParticipationTotal: DgeqTurnoutSchema,
     nbCirconscription: z.number(),
     nbCirconscriptionAvecResultat: z.number(),
     nbCirconscriptionSansResultat: z.number(),
@@ -102,7 +120,7 @@ export const PublicRidingSchema = z.object({
   validVotes: z.number(),
   rejectedVotes: z.number(),
   registeredElectors: z.number(),
-  turnoutPct: z.number(),
+  turnoutPct: z.number().nullable(),
   leaderParty: z.string().nullable(),
   candidates: z.array(PublicCandidateSchema),
   projection: RidingProjectionSchema.nullable(),
@@ -117,9 +135,24 @@ export const PublicPartySchema = z.object({
   seatsLeading: z.number(),
 });
 
+export const ReplayMetadataSchema = z.object({
+  election: z.union([z.literal(2014), z.literal(2018), z.literal(2022)]),
+  reporting: z.number().min(0).max(100),
+  seed: z.number().int(),
+  order: z.literal("hashed-units"),
+  sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
+  crosswalkHash: z.string().regex(/^[a-f0-9]{64}$/),
+});
+export type ReplayMetadata = z.infer<typeof ReplayMetadataSchema>;
+export const ReplaySourceSchema = z.object({
+  replay: ReplayMetadataSchema,
+  result: DgeqResultsSchema,
+});
+
 export const PublicLiveStateSchema = z.object({
   schemaVersion: z.literal("qcelect.live.v1"),
-  source: z.literal("elections-quebec"),
+  source: z.enum(["elections-quebec", "historical-replay"]),
+  replay: ReplayMetadataSchema.optional(),
   sourceUpdatedAt: z.string(),
   ingestedAt: z.string(),
   sourceSha256: z.string(),
@@ -130,9 +163,13 @@ export const PublicLiveStateSchema = z.object({
   validVotes: z.number(),
   rejectedVotes: z.number(),
   registeredElectors: z.number(),
-  turnoutPct: z.number(),
+  turnoutPct: z.number().nullable(),
   parties: z.array(PublicPartySchema),
   ridings: z.array(PublicRidingSchema),
+}).superRefine((state, context) => {
+  if ((state.source === "historical-replay") !== Boolean(state.replay)) {
+    context.addIssue({ code: "custom", message: "Replay provenance must match the source", path: ["replay"] });
+  }
 });
 
 export type PublicLiveState = z.infer<typeof PublicLiveStateSchema>;

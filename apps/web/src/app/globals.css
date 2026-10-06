@@ -729,3 +729,40 @@ h2 {
 .otherPartiesTrigger[data-panel-open] .disclosureArrow {
   transform: rotate(180deg);
 }
+
+/* Approved reference presentation; official totals update without moving the columns. */
+.partySummary--featured { gap: 0; margin: 30px 0 0; }
+.partyColumn { min-width: 0; padding: 0 28px 0; border-left: 1px solid #d4d4d4; }
+.partyColumn:first-child { border-left: 0; padding-left: 0; }
+.partyColumn:last-child { padding-right: 0; }
+.partyBrand { height: 64px; display: flex; align-items: center; }
+.partyBrand img { max-width: 100%; width: 160px; height: 64px; object-fit: contain; object-position: left center; }
+.partySeatTotal { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 40px; min-height: 64px; }
+.partyPortrait { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; object-position: center top; background: #f4f4f4; }
+.partySeatTotal strong { font-size: clamp(40px, 4.6vw, 60px); font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums; }
+.partySeatCounts { margin-top: 18px; font-size: 18px; line-height: 1.5; font-weight: 550; }
+.partySeatBar { position: relative; display: flex; height: 12px; margin: 24px 0; background: #d4d4d4; }
+.partyBarElected, .partyBarLeading { display: block; height: 100%; }
+.partyBarLeading { opacity: .35; }
+.partyMajorityMarker { position: absolute; left: calc(64 / 127 * 100%); width: 3px; top: -3px; bottom: -3px; background: #666; }
+.partyVoteTotals { color: #666; font-size: 18px; font-weight: 550; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.detailedResultsLink { display: block; width: fit-content; margin: 12px 0 8px auto; color: #006b94; font-size: 17px; text-underline-offset: 4px; }
+@media (max-width: 950px) and (min-width: 701px) {
+  .partyColumn { padding-right: 14px; padding-left: 14px; }
+  .partyPortrait { width: 48px; height: 48px; }
+  .partySeatTotal { gap: 6px; }
+  .partySeatCounts, .partyVoteTotals { font-size: 16px; }
+}
+@media (max-width: 700px) {
+  .partySummary--featured { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 28px; }
+  .partyColumn { padding: 0 20px; }
+  .partyColumn:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .partyColumn:nth-child(even) { padding-right: 0; }
+  .partySeatTotal { margin-top: 24px; }
+  .partySeatTotal strong { font-size: 48px; }
+}
+
+.partyBrand--conservative { gap: 6px; }
+.partyBrand--conservative img { width: 42px; height: 52px; }
+.partyBrand--conservative span { font-size: 13px; color: #19294f; font-weight: 750; }
+@media (max-width: 950px) { .partyBrand--conservative span { font-size: 10px; } }

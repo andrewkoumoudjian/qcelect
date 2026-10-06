@@ -10,19 +10,30 @@ const LIVE_API_URL = process.env.NEXT_PUBLIC_LIVE_API_URL ?? "/api/live.json";
 const POLL_MS = 20_000;
 
 const WAITING_PARTIES = [
-  { abbreviation: "CAQ", name: "Coalition avenir Québec" },
-  { abbreviation: "PLQ", name: "Parti libéral du Québec" },
   { abbreviation: "PQ", name: "Parti québécois" },
-  { abbreviation: "QS", name: "Québec solidaire" },
+  { abbreviation: "PLQ", name: "Parti libéral du Québec" },
   { abbreviation: "PCOQ", name: "Parti conservateur du Québec" },
+  { abbreviation: "CAQ", name: "Équipe Christine Fréchette - Coalition avenir Québec" },
+  { abbreviation: "QS", name: "Québec solidaire" },
 ];
 
 const FEATURED_PARTIES = new Set([
   "PQ", "PLQ", "PLQ/QLP", "PCOQ", "QS", "CAQ", "ÉCF-CAQ",
 ]);
 
+const CAQ_MEDIA = { logo: "caq-logo.png", portrait: "caq-portrait.png", representative: "Christine Fréchette" };
+const PLQ_MEDIA = { logo: "plq-logo.svg", portrait: "plq-portrait.png", representative: "Charles Milliard" };
+const PARTY_MEDIA = new Map([
+  ["PQ", { logo: "pq-logo.svg", portrait: "pq-portrait.png", representative: "Paul St-Pierre Plamondon" }],
+  ["PLQ", PLQ_MEDIA], ["PLQ/QLP", PLQ_MEDIA],
+  ["PCOQ", { logo: "pcoq-logo.png", portrait: "pcoq-portrait.png", representative: "Éric Duhaime" }],
+  ["CAQ", CAQ_MEDIA], ["ÉCF-CAQ", CAQ_MEDIA],
+  ["QS", { logo: "qs-logo.svg", portrait: "qs-portrait.png", representative: "Ruba Ghazal" }],
+]);
+
 type DisplayParty = Pick<PublicLiveState["parties"][number], "abbreviation" | "name"> & {
   results: PublicLiveState["parties"][number] | null;
+  elected: number | null;
 };
 
 const number = new Intl.NumberFormat("fr-CA");
@@ -69,13 +80,44 @@ function partyRows(state: PublicLiveState) {
   return ordered;
 }
 
-function PartySummary({ parties, label }: {
+function PartySummary({ parties, label, featured = false, replay = false }: {
   parties: readonly DisplayParty[];
   label: string;
+  featured?: boolean;
+  replay?: boolean;
 }) {
   return (
-    <section className="partySummary" aria-label={label}>
-      {parties.map((party) => (
+    <section className={featured ? "partySummary partySummary--featured" : "partySummary"} aria-label={label}>
+      {parties.map((party) => {
+        const media = PARTY_MEDIA.get(party.abbreviation);
+        const total = party.results?.seatsLeading ?? null;
+        const leading = total !== null && party.elected !== null ? Math.max(0, total - party.elected) : null;
+        if (featured) return (
+          <article className="partyColumn" key={party.abbreviation} aria-label={party.name}>
+            <div className={party.abbreviation === "PCOQ" ? "partyBrand partyBrand--conservative" : "partyBrand"}>
+              {media ? <img src={`/parties/${media.logo}`} alt={party.name} width={170} height={64} /> : <strong>{party.name}</strong>}
+              {party.abbreviation === "PCOQ" ? <span aria-hidden="true">CONSERVATEUR</span> : null}
+            </div>
+            <div className="partySeatTotal">
+              {media && !replay ? <img className="partyPortrait" src={`/parties/${media.portrait}`} alt={media.representative} width={64} height={64} /> : null}
+              <strong aria-label={`${total ?? "En attente"} sièges élus ou en tête`}>{total ?? "–"}</strong>
+            </div>
+            <div className="partySeatCounts">
+              <div>{party.elected ?? "–"} élu(e)</div>
+              <div>{leading ?? "–"} en tête</div>
+            </div>
+            <div className="partySeatBar" role="img" aria-label={`${party.elected ?? "En attente"} élus, ${leading ?? "En attente"} en tête sur 127 sièges. Majorité : 64.`}>
+              <span className="partyBarElected" style={{ width: `${(party.elected ?? 0) / 127 * 100}%`, backgroundColor: partyColor(party.abbreviation) }} />
+              <span className="partyBarLeading" style={{ width: `${(leading ?? 0) / 127 * 100}%`, backgroundColor: partyColor(party.abbreviation) }} />
+              <span className="partyMajorityMarker" />
+            </div>
+            <div className="partyVoteTotals">
+              <div>{party.results ? number.format(party.results.votes) : "–"} votes</div>
+              <div>{party.results ? `${percent.format(party.results.votePct)} %` : "–"}</div>
+            </div>
+          </article>
+        );
+        return (
         <article className="partyCard" key={party.abbreviation}>
           <div className="partyIdentity">
             <span
@@ -99,7 +141,8 @@ function PartySummary({ parties, label }: {
             </div>
           </div>
         </article>
-      ))}
+        );
+      })}
     </section>
   );
 }
@@ -188,8 +231,8 @@ export function LiveResults({ ridingMetadata, replayMode = false }: {
   }, []);
 
   const parties = useMemo(() => state
-    ? partyRows(state).map((party) => ({ abbreviation: party.abbreviation, name: party.name, results: party }))
-    : WAITING_PARTIES.map((party) => ({ ...party, results: null })), [state]);
+    ? partyRows(state).map((party) => ({ abbreviation: party.abbreviation, name: party.name, results: party, elected: state.ridings.filter((riding) => riding.final && riding.leaderParty === party.abbreviation).length }))
+    : WAITING_PARTIES.map((party) => ({ ...party, results: null, elected: null })), [state]);
   const otherParties = parties.filter((party) => !FEATURED_PARTIES.has(party.abbreviation));
   const ridings = ridingMetadata.map((metadata) =>
     state?.ridings.find((riding) => riding.id === metadata.id) ?? metadata,
@@ -226,7 +269,10 @@ export function LiveResults({ ridingMetadata, replayMode = false }: {
       <PartySummary
         parties={parties.filter((party) => FEATURED_PARTIES.has(party.abbreviation))}
         label="Sommaire des partis"
+        featured
+        replay={Boolean(state?.replay)}
       />
+      <a className="detailedResultsLink" href="#riding-results">Résultats détaillés ↗</a>
       {otherParties.length > 0 ? (
         <Collapsible.Root className="otherParties">
           <Collapsible.Trigger className="otherPartiesTrigger">
@@ -253,6 +299,7 @@ export function LiveResults({ ridingMetadata, replayMode = false }: {
 
       <section
         className="resultsTable"
+        id="riding-results"
         aria-label="Résultats par circonscription"
       >
         <div className="sectionHeading">

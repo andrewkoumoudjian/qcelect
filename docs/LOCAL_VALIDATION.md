@@ -100,5 +100,11 @@ source error. This is operational replay, not statistical calibration.
 Local validation now passes 15 production tests and 37 research tests,
 all typechecks, architecture and map checks. Changed-file lint passes;
 full lint still reports the two baseline errors and two warnings above.
-Party presentation mock A follows the supplied screenshot structure;
-logos/portraits and layout implementation await the user's mock selection.
+Party presentation A was selected and implemented with five logo/portrait
+columns, inclusive seat totals, elected/finalized and still-leading counts,
+votes and vote share. The majority marker sits at 64 of 127 seats. Media is
+served locally and its sources are recorded in PROVENANCE.md. Browser proof
+confirmed all ten media assets load, all 16 other parties expand/collapse,
+and the details link navigates to the riding table. Empty-state values remain
+unavailable, and historical replay omits 2026 portraits. The 15 production
+tests, typechecks and changed-file lint pass; the full-lint baseline remains.

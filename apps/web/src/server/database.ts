@@ -4,7 +4,7 @@ import { DatabaseEnvironmentSchema } from "@qcelect/schema";
 import { ElectionRepository } from "@qcelect/worker/repository";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 
 let root = process.cwd();
@@ -17,16 +17,19 @@ if (existsSync(join(root, ".env"))) process.loadEnvFile(join(root, ".env"));
 
 export async function openDatabase() {
   const env = DatabaseEnvironmentSchema.parse(process.env);
-  const url =
-    env.TURSO_DATABASE_URL || `file:${join(root, "data/generated/qcelect.db")}`;
+  const replay = Boolean(env.QCELECT_REPLAY_FILE);
+  const url = replay
+    ? `file:${join(root, "data/generated/replay/qcelect.db")}`
+    : env.TURSO_DATABASE_URL || `file:${join(root, "data/generated/qcelect.db")}`;
   if (url.startsWith("file:"))
     await mkdir(dirname(url.slice(5)), { recursive: true });
   const config: Config = { url };
-  if (env.TURSO_AUTH_TOKEN) config.authToken = env.TURSO_AUTH_TOKEN;
+  if (!replay && env.TURSO_AUTH_TOKEN) config.authToken = env.TURSO_AUTH_TOKEN;
   const client = createClient(config);
   return {
     client,
-    repository: new ElectionRepository(client),
+    repository: new ElectionRepository(client, replay ? "historical-replay:2026" : "2026-10-05"),
+    replayFile: env.QCELECT_REPLAY_FILE ? resolve(root, env.QCELECT_REPLAY_FILE) : undefined,
     local: url.startsWith("file:"),
   };
 }

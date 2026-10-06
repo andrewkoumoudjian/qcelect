@@ -41,7 +41,7 @@ checker. These rules were not suppressed.
 
 The first local persistence slice stores complete normalized snapshot documents
 atomically, with immutable official JSON and separate published JSON. Relational
-metadata/projection tables, historical application replay, prior/backtests,
+metadata/projection tables, prior/backtests,
 conformal calibration and deterministic seat scenarios remain unfinished.
 
 The white local UI now renders before the first accepted snapshot. Canonical
@@ -76,3 +76,29 @@ snapshot are preserved in a Base UI disclosure, including those with zero
 votes. Browser verification confirmed the exact five-party summary, all 16
 other parties on expansion, and keyboard collapse through Space. Local tests
 (14), typechecks and changed-file lint pass; full lint remains at its baseline.
+
+Local historical application replay uses the same strict normalization,
+libSQL repository, model boundary and SSE state interfaces as live ingestion,
+with a separate database and port 3002. Full snapshots for 2014/2018/2022
+retain 4,232,262 / 4,033,538 / 4,112,821 votes and reproduce every final
+riding/party total exactly. Source reporting inventories contain all
+21,819 / 21,054 / 21,765 distinct historical units. The 343 / 360 / 363
+zero-vote units without target allocations remain in the source denominator
+and are enumerated in generated replay diagnostics. No positive-vote unit
+may be omitted. Split units retain membership in multiple target ridings;
+these synthetic counts are not official bureau counts.
+
+2022 replay was exercised at 0%, 35%, and 100%, including rewinding to
+previously stored states. The 35% state contains 7,617 source units and
+1,425,163 votes. Repeated hashes skip inference and do not duplicate history;
+an active pointer enables rewinding without changing recorded snapshots.
+The live database cannot activate a replay pointer. Model failures preserve
+results with null projections. Both laptop servers run concurrently with
+separate Next build directories; the live health endpoint still reports no
+source error. This is operational replay, not statistical calibration.
+
+Local validation now passes 15 production tests and 37 research tests,
+all typechecks, architecture and map checks. Changed-file lint passes;
+full lint still reports the two baseline errors and two warnings above.
+Party presentation mock A follows the supplied screenshot structure;
+logos/portraits and layout implementation await the user's mock selection.

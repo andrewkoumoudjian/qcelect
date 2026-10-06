@@ -12,8 +12,8 @@ export class ElectionRepository implements LiveStore {
 
   async latest(): Promise<PublicLiveState | null> {
     const result = await this.client.execute({
-      sql: "SELECT public_json, official_json FROM official_snapshots WHERE election = ? ORDER BY id DESC LIMIT 1",
-      args: [this.election],
+      sql: "SELECT public_json, official_json FROM official_snapshots WHERE election = ? ORDER BY CASE WHEN source_sha256 = (SELECT value FROM ingestion_metadata WHERE key = ?) THEN 0 ELSE 1 END, id DESC LIMIT 1",
+      args: [this.election, `active-replay:${this.election}`],
     });
     const row = result.rows[0];
     if (!row) return null;
@@ -40,13 +40,24 @@ export class ElectionRepository implements LiveStore {
         official.sourceSha256,
         official.sourceUpdatedAt,
         official.ingestedAt,
-        DGEQ_RESULTS_URL,
+        official.replay ? `historical-replay:${official.replay.election}:on-2026` : DGEQ_RESULTS_URL,
         official.schemaVersion,
         body,
         body,
       ],
     });
     return result.rowsAffected === 1;
+  }
+
+  /** Selecting recorded replay states changes a pointer, never their immutable history. */
+  async activateReplay(hash: string): Promise<void> {
+    if (!this.election.startsWith("historical-replay:")) throw new Error("Cannot select replay state in a live election");
+    const key = `active-replay:${this.election}`;
+    const result = await this.client.execute({
+      sql: "INSERT INTO ingestion_metadata (key, value) SELECT ?, source_sha256 FROM official_snapshots WHERE election = ? AND source_sha256 = ? ON CONFLICT(key) DO UPDATE SET value = excluded.value WHERE value != excluded.value",
+      args: [key, this.election, hash],
+    });
+    if (result.rowsAffected === 0 && await this.get(key) !== hash) throw new Error("Replay snapshot is not stored");
   }
 
   async get(key: string): Promise<string | null> {
@@ -56,8 +67,8 @@ export class ElectionRepository implements LiveStore {
     }
     if (key === HASH_KEY) {
       const result = await this.client.execute({
-        sql: "SELECT source_sha256 FROM official_snapshots WHERE election = ? ORDER BY id DESC LIMIT 1",
-        args: [this.election],
+        sql: "SELECT source_sha256 FROM official_snapshots WHERE election = ? ORDER BY CASE WHEN source_sha256 = (SELECT value FROM ingestion_metadata WHERE key = ?) THEN 0 ELSE 1 END, id DESC LIMIT 1",
+        args: [this.election, `active-replay:${this.election}`],
       });
       return result.rows[0] ? String(result.rows[0].source_sha256) : null;
     }

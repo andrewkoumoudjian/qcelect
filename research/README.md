@@ -42,3 +42,10 @@ usable for vote totals but receive unknown turnout rather than infinity.
 
 Generated historical data is intentionally not committed. The downloader,
 parsers, tiny format fixtures and validation tests are.
+
+`pnpm replay --election 2022 --reporting 35` prepares a deterministic historical
+unit snapshot and sends it through the production TypeScript ingestion boundary.
+It reuses validated cached crosswalks, rejects invalid weights, preserves source
+unit identities and checks full allocated riding/party totals against validated
+transpositions before caching. The website runs only TypeScript and reads the
+generated source JSON. See the root README for its isolated local server.

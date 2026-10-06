@@ -104,8 +104,9 @@ function PartySummary({ parties, label }: {
   );
 }
 
-export function LiveResults({ ridingMetadata }: {
+export function LiveResults({ ridingMetadata, replayMode = false }: {
   ridingMetadata: readonly { id: number; name: string }[];
+  replayMode?: boolean;
 }) {
   const [state, setState] = useState<PublicLiveState | null>(null);
   const [selectedRidingId, setSelectedRidingId] = useState<number | null>(null);
@@ -203,15 +204,15 @@ export function LiveResults({ ridingMetadata }: {
           {state ? (
             <>
               <span className="liveDot" aria-hidden="true" />
-              <strong>Officiel · Élections Québec</strong>
+              <strong>{state.replay ? `Rejeu historique · ${state.replay.election}` : "Officiel · Élections Québec"}</strong>
               <span>Mis à jour à {formatTimestamp(state.sourceUpdatedAt)}</span>
-              <span>{number.format(state.pollsReported)} / {number.format(state.pollsTotal)} bureaux</span>
+              <span>{number.format(state.pollsReported)} / {number.format(state.pollsTotal)} {state.replay ? "unités transposées" : "bureaux"}</span>
               <span>{percent.format(state.reportingPct)} % dépouillé</span>
             </>
           ) : (
             <>
-              <strong>En attente du premier résultat officiel</strong>
-              <span>Mise à jour automatique · Élections Québec</span>
+              <strong>{replayMode ? "Chargement du rejeu historique" : "En attente du premier résultat officiel"}</strong>
+              <span>{replayMode ? "Données historiques · carte 2026" : "Mise à jour automatique · Élections Québec"}</span>
             </>
           )}
         </div>
@@ -246,6 +247,7 @@ export function LiveResults({ ridingMetadata }: {
 
       <ResultsViewTabs
         ridings={state?.ridings ?? []}
+        replay={Boolean(state?.replay)}
         onRidingSelect={setSelectedRidingId}
       />
 
@@ -255,7 +257,7 @@ export function LiveResults({ ridingMetadata }: {
       >
         <div className="sectionHeading">
           <div>
-            <p className="statusKicker">Officiel</p>
+            <p className="statusKicker">{state?.replay ? "Rejeu historique sur la carte 2026" : "Officiel"}</p>
             <h2>Circonscriptions</h2>
           </div>
           <span>{ridings.length} sièges</span>
@@ -315,6 +317,7 @@ export function LiveResults({ ridingMetadata }: {
       <RidingDialog
         riding={selectedRiding}
         name={selectedName}
+        replay={Boolean(state?.replay)}
         open={selectedRidingId !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedRidingId(null);

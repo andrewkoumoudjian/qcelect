@@ -10,7 +10,7 @@ export default function Home() {
         </div>
       </header>
 
-      <LiveResults ridingMetadata={ridingMetadata.ridings} />
+      <LiveResults ridingMetadata={ridingMetadata.ridings} replayMode={Boolean(process.env.QCELECT_REPLAY_FILE)} />
 
       <footer className="sourceNotice">
         Comprend des données ouvertes octroyées sous la licence d'utilisation des

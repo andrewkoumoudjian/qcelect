@@ -66,8 +66,8 @@ model output after evaluation. Model errors or malformed output cannot undo the
 official insert. A hash that already exists terminates before model evaluation.
 
 This first local slice stores normalized result documents rather than creating
-unused model tables. Relational metadata/projection tables and historical replay
-remain subsequent work. Geometry stays in static assets.
+unused model tables. Relational metadata/projection tables remain subsequent
+work. Local historical replay now uses the same operational pipeline. Geometry stays in static assets.
 
 The Next.js Node adapter owns the local process loop and a memory cache. It polls
 serially with a ten-second fetch timeout and waits five seconds between checks.
@@ -137,3 +137,20 @@ Static/generated electoral assets: normalized candidate metadata, simplified SVG
 If projection artifacts are unavailable or inference fails, official results must continue to publish. The UI renders `projection: null` rather than substituting stale or fabricated numbers.
 
 If the source schema changes incompatibly, retain the last valid state and expose source-health metadata; do not publish partially parsed official totals.
+
+## Local replay adapter
+
+Offline preparation retains per-source-unit transposition allocations and checks
+them against the validated final riding/party totals. A cached crosswalk can be
+reused without doing geometry in production. The snapshot JSON includes source
+and crosswalk hashes, historical election, reporting fraction, seed and order.
+TypeScript validates that source through `ReplaySourceSchema`, then uses the
+existing ingestion transaction and model-failure isolation. Public source is
+`historical-replay`, with mandatory matching replay provenance.
+
+Replay uses a separate file database, election namespace, build directory and
+port. An active replay pointer selects previously recorded snapshots when
+rewinding; history remains immutable, duplicate hashes remain idempotent and
+cached projections are reused. The live namespace cannot activate this pointer.
+The replay app never starts a live upstream fetch. UI status identifies replay
+and unsupported electorate/rejected values stay unavailable.

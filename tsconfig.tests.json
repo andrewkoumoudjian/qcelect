@@ -1,5 +1,11 @@
 {
   "extends": "./tsconfig.base.json",
-  "compilerOptions": { "noEmit": true },
-  "include": ["tests/**/*.ts", "scripts/db.ts"]
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "tests/**/*.ts",
+    "scripts/db.ts",
+    "scripts/replay.ts"
+  ]
 }

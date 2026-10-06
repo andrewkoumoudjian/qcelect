@@ -5,7 +5,8 @@
   "version": "0.0.0",
   "exports": {
     "./repository": "./src/repository.ts",
-    "./pipeline": "./src/pipeline.ts"
+    "./pipeline": "./src/pipeline.ts",
+    "./replay": "./src/replay.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

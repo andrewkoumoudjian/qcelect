@@ -1,4 +1,4 @@
-import { DgeqResultsSchema, type DgeqResults } from "@qcelect/schema";
+import { DgeqResultsSchema, type DgeqResults, type ReplayMetadata } from "@qcelect/schema";
 import type { SourceValidators } from "@qcelect/schema";
 export type { SourceValidators } from "@qcelect/schema";
 
@@ -14,6 +14,7 @@ export type DgeqFetchResult =
       status: "ok";
       result: DgeqResults;
       raw: string;
+      replay?: ReplayMetadata;
       sha256: string;
       validators: SourceValidators;
     };

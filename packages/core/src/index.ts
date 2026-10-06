@@ -1,4 +1,4 @@
-import type { DgeqResults, PublicLiveState } from "@qcelect/schema";
+import type { DgeqResults, PublicLiveState, ReplayMetadata } from "@qcelect/schema";
 
 function finitePct(numerator: number, denominator: number): number {
   if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
@@ -25,13 +25,13 @@ function leaderParty(
 
 export function normalizeDgeqResults(
   source: DgeqResults,
-  metadata: { ingestedAt: string; sourceSha256: string },
+  metadata: { ingestedAt: string; sourceSha256: string; replay?: ReplayMetadata },
 ): PublicLiveState {
   const stats = source.statistiques;
 
-  return {
+  const state: PublicLiveState = {
     schemaVersion: "qcelect.live.v1",
-    source: "elections-quebec",
+    source: metadata.replay ? "historical-replay" : "elections-quebec",
     sourceUpdatedAt: stats.iso8601DateMAJ,
     ingestedAt: metadata.ingestedAt,
     sourceSha256: metadata.sourceSha256,
@@ -83,4 +83,6 @@ export function normalizeDgeqResults(
       projection: null,
     })),
   };
+  if (metadata.replay) state.replay = metadata.replay;
+  return state;
 }

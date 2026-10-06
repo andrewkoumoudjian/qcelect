@@ -16,7 +16,9 @@
     "research:validate": "uv run --project research --extra dev python research/scripts/validate_official_data.py",
     "research:test": "uv run --project research --extra dev python -m pytest research/tests",
     "typecheck": "pnpm -r typecheck && tsc -p tsconfig.tests.json",
-    "check:architecture": "node scripts/check-boundaries.mjs"
+    "check:architecture": "node scripts/check-boundaries.mjs",
+    "replay": "tsx scripts/replay.ts",
+    "dev:replay": "QCELECT_REPLAY_FILE=data/generated/replay/snapshot.json pnpm --filter @qcelect/web exec next dev --hostname 127.0.0.1 --port 3002"
   },
   "devDependencies": {
     "@libsql/client": "^0.18.0",

@@ -63,6 +63,7 @@ class TranspositionResult:
     votes: pd.DataFrame
     crosswalk: pd.DataFrame
     diagnostics: dict[str, object]
+    allocations: pd.DataFrame
 
 
 def section_geometry_url(election_date: str) -> str:
@@ -332,8 +333,10 @@ def _riding_destination_weights(
 
 def transpose_results(
     results: pd.DataFrame,
-    source_sections: gpd.GeoDataFrame,
-    target_ridings: gpd.GeoDataFrame,
+    source_sections: gpd.GeoDataFrame | None,
+    target_ridings: gpd.GeoDataFrame | None,
+    *,
+    crosswalk: pd.DataFrame | None = None,
 ) -> TranspositionResult:
     """Transpose one historical election onto the 2026 riding map."""
 
@@ -342,9 +345,23 @@ def transpose_results(
         raise ValueError("transpose_results expects exactly one election")
     election = next(iter(elections))
 
-    crosswalk, geometry_diagnostics = build_section_crosswalk(
-        source_sections, target_ridings
-    )
+    if crosswalk is None:
+        if source_sections is None or target_ridings is None:
+            raise ValueError("source and target geometry are required without a validated crosswalk")
+        crosswalk, geometry_diagnostics = build_section_crosswalk(source_sections, target_ridings)
+    else:
+        crosswalk = crosswalk.copy()
+        crosswalk["source_riding"] = crosswalk["source_riding"].map(_key)
+        crosswalk["polling_section"] = crosswalk["polling_section"].map(_key)
+        crosswalk["target_riding"] = crosswalk["target_riding"].map(_key)
+        if crosswalk.duplicated(["source_riding", "polling_section", "target_riding"]).any():
+            raise ValueError("cached crosswalk has duplicate destinations")
+        if not np.isfinite(crosswalk["weight"]).all() or (crosswalk["weight"] < 0).any():
+            raise ValueError("invalid cached crosswalk weights")
+        totals = crosswalk.groupby(["source_riding", "polling_section"])["weight"].sum()
+        if not np.allclose(totals, 1, rtol=0, atol=1e-9):
+            raise ValueError("cached crosswalk weights do not sum to one")
+        geometry_diagnostics = {"cached_crosswalk": True}
     work = results.copy()
     work["source_riding"] = work["riding_code"].map(_key)
     work["polling_section"] = work["polling_section"].map(_key)
@@ -403,6 +420,8 @@ def transpose_results(
                     "party": key_values[-1],
                     "votes": votes,
                     "allocation": "section_geometry",
+                    "source_riding": key_values[2],
+                    "polling_section": key_values[3],
                 }
             )
 
@@ -441,6 +460,8 @@ def transpose_results(
                     "party": row["party"],
                     "votes": votes,
                     "allocation": "riding_elector_share",
+                    "source_riding": row["source_riding"],
+                    "polling_section": row["polling_section"],
                 }
             )
 
@@ -517,6 +538,7 @@ def transpose_results(
 
     return TranspositionResult(
         votes=output,
+        allocations=allocated,
         crosswalk=crosswalk.rename(columns={"geometry_section": "polling_section"}),
         diagnostics=diagnostics,
     )

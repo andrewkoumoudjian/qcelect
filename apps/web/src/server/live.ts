@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { parseReplaySource } from "@qcelect/worker/replay";
 import type { PublicLiveState } from "@qcelect/schema";
 import { refreshLiveState } from "@qcelect/worker/pipeline";
 import { openDatabase, migrateDatabase } from "./database";
@@ -15,7 +17,17 @@ async function startLive() {
 
   async function refresh() {
     try {
-      const next = await refreshLiveState(database.repository);
+      let next: PublicLiveState | null;
+      if (database.replayFile) {
+        const source = await parseReplaySource(await readFile(database.replayFile, "utf8"));
+        await refreshLiveState(database.repository, { fetchResults: async () => source });
+        if (source.status !== "ok") throw new Error("Replay source must contain a snapshot");
+        await database.repository.activateReplay(source.sha256);
+        const selected = await database.repository.latest();
+        next = selected?.sourceSha256 !== state?.sourceSha256 ? selected : null;
+      } else {
+        next = await refreshLiveState(database.repository);
+      }
       sourceError = null;
       if (next) {
         state = next;

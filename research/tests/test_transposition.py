@@ -159,3 +159,16 @@ def test_suffixed_bureaus_share_geometry_without_losing_or_combining_votes():
         result.votes.groupby("party")["votes"].sum().to_dict()
         == rows.groupby("party")["votes"].sum().to_dict()
     )
+
+
+def test_replay_cached_crosswalk_preserves_units_and_final_totals():
+    original = transpose_results(_results(), _source_sections(), _target_ridings())
+    replay = transpose_results(_results(), None, None, crosswalk=original.crosswalk)
+    pd.testing.assert_frame_equal(original.votes, replay.votes)
+    assert replay.allocations.votes.sum() == 210
+    assert set(replay.allocations.polling_section) == {"1", "2", "900"}
+    assert replay.allocations.groupby("party").votes.sum().to_dict() == {"A": 97, "B": 113}
+    invalid = original.crosswalk.copy()
+    invalid.loc[0, "weight"] = .5
+    with pytest.raises(ValueError, match="sum to one"):
+        transpose_results(_results(), None, None, crosswalk=invalid)

@@ -15,9 +15,11 @@ function closeRaceMargin(riding: Riding): number | null {
 
 export function ResultsViewTabs({
   ridings,
+  replay = false,
   onRidingSelect,
 }: {
   ridings: PublicLiveState["ridings"];
+  replay?: boolean;
   onRidingSelect: (id: number) => void;
 }) {
   const paint = ridings.map((riding) => ({
@@ -58,7 +60,7 @@ export function ResultsViewTabs({
         <div className="geographyLayout">
           <div className="provinceOverview">
             <div>
-              <h3>Géographie · résultats officiels</h3>
+              <h3>Géographie · {replay ? "rejeu historique" : "résultats officiels"}</h3>
               <ElectionMap
                 svgUrl="/maps/quebec.svg"
                 ridings={paint}

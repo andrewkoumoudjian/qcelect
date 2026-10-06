@@ -13,11 +13,13 @@ const percent = new Intl.NumberFormat("fr-CA", {
 export function RidingDialog({
   riding,
   name,
+  replay = false,
   open,
   onOpenChange,
 }: {
   riding: Riding | null;
   name: string;
+  replay?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -32,7 +34,7 @@ export function RidingDialog({
                 <div className="dialogHeader">
                   <div>
                     <p className="statusKicker">
-                      {riding.final ? "Résultat final" : "Résultat officiel en cours"}
+                      {replay ? "Rejeu historique sur la carte 2026" : riding.final ? "Résultat final" : "Résultat officiel en cours"}
                     </p>
                     <Dialog.Title className="dialogTitle">
                       {riding.name}
@@ -75,11 +77,11 @@ export function RidingDialog({
                   </div>
                   <div>
                     <dt>Votes rejetés</dt>
-                    <dd>{number.format(riding.rejectedVotes)}</dd>
+                    <dd>{replay ? "–" : number.format(riding.rejectedVotes)}</dd>
                   </div>
                   <div>
                     <dt>Électeurs inscrits</dt>
-                    <dd>{number.format(riding.registeredElectors)}</dd>
+                    <dd>{replay ? "–" : number.format(riding.registeredElectors)}</dd>
                   </div>
                   <div>
                     <dt>Chef actuel</dt>

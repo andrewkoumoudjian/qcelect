@@ -86,10 +86,11 @@ export async function refreshLiveState(
     return null;
   }
 
-  const normalized = normalizeDgeqResults(source.result, {
-    ingestedAt: deps.now(),
-    sourceSha256: source.sha256,
-  });
+  const metadata: Parameters<typeof normalizeDgeqResults>[1] = {
+    ingestedAt: deps.now(), sourceSha256: source.sha256,
+  };
+  if (source.replay) metadata.replay = source.replay;
+  const normalized = normalizeDgeqResults(source.result, metadata);
   if (store.acceptOfficial && !(await store.acceptOfficial(normalized))) {
     await persistValidators(store, source.validators, validatorsRaw);
     return null;

@@ -669,3 +669,41 @@ h2 {
     padding: 16px 0 0;
   }
 }
+
+.mapControls {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 1;
+  display: flex;
+  border: 1px solid #bcbcb6;
+  background: #fff;
+}
+
+.mapControls button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: #fff;
+  color: #111;
+  cursor: pointer;
+  font-size: 19px;
+}
+
+.mapControls button:disabled {
+  color: #999;
+  cursor: default;
+}
+
+.electionMap[data-zoomed="true"] svg {
+  cursor: grab;
+  touch-action: none;
+}
+
+.electionMap[data-zoomed="true"] [data-riding] {
+  cursor: grab;
+}
+
+.electionMap[data-zoomed="true"] svg:active {
+  cursor: grabbing;
+}

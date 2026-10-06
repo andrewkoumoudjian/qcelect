@@ -51,3 +51,21 @@ visible together, with the existing 48-riding Montréal/Laval and 10-riding Qué
 insets. Empty riding dialogs open and close. Local browser verification counted
 all four maps and 127 list rows; all 13 production tests, typechecks and map and
 architecture checks passed. The two existing full-lint errors remain unchanged.
+
+Live opening validation at 20:03 Toronto: the official endpoint returned early
+partial snapshots. Turnout arrived as the literal `n.d.` and as decimal strings
+(e.g. `72.21`); both are parsed explicitly, arbitrary strings are rejected, and
+unavailable turnout remains null. Upstream timestamps use comma milliseconds,
+which the display converts before date parsing. Accepted official snapshots
+were verified in local libSQL, the cached API and the browser SSE consumer.
+The UI retains all 127 canonical ridings when the upstream snapshot is partial.
+A focused contract regression brings the local production suite to 14 tests;
+all typechecks and changed-file lint pass. Full lint has the same two baseline
+errors recorded above.
+
+All four map views support bounded zoom (1–8×), reset, modifier-wheel/trackpad
+pinch, and drag panning when zoomed. Ordinary wheel scrolling remains available.
+Browser verification checked province and Montréal zoom/reset, actual viewBox
+movement during a Montréal pan, and absence of an accidental riding dialog
+after dragging. Map-shaped cartogram visual studies await the user's selection;
+the current cartogram asset remains unchanged.

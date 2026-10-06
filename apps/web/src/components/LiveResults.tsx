@@ -41,7 +41,7 @@ function partyColor(abbreviation: string): string {
 }
 
 function formatTimestamp(value: string): string {
-  const parsed = new Date(value);
+  const parsed = new Date(value.replace(/,(\d{3})/, ".$1"));
   if (Number.isNaN(parsed.valueOf())) return value;
   return new Intl.DateTimeFormat("fr-CA", {
     hour: "2-digit",
@@ -148,7 +148,9 @@ export function LiveResults({ ridingMetadata }: {
   const parties = useMemo(() => state
     ? partyRows(state).map((party) => ({ abbreviation: party.abbreviation, name: party.name, results: party }))
     : WAITING_PARTIES.map((party) => ({ ...party, results: null })), [state]);
-  const ridings = state?.ridings ?? ridingMetadata;
+  const ridings = ridingMetadata.map((metadata) =>
+    state?.ridings.find((riding) => riding.id === metadata.id) ?? metadata,
+  );
   const selectedRiding = state?.ridings.find((riding) => riding.id === selectedRidingId) ?? null;
   const selectedName = ridings.find((riding) => riding.id === selectedRidingId)?.name ?? "";
 

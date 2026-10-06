@@ -10,6 +10,13 @@ export const DatabaseEnvironmentSchema = z.object({
   TURSO_AUTH_TOKEN: z.string().optional(),
 });
 
+// The live feed sends turnout as a decimal string, or "n.d." when unavailable.
+const DgeqTurnoutSchema = z.union([
+  z.number().min(0).max(100),
+  z.literal("n.d.").transform(() => null),
+  z.string().regex(/^\d+(?:\.\d+)?$/).transform(Number).pipe(z.number().min(0).max(100)),
+]);
+
 export const DgeqCandidateSchema = z
   .object({
     numeroCandidat: z.number(),
@@ -37,7 +44,7 @@ export const DgeqRidingSchema = z
     nbElecteurInscrit: z.number(),
     tauxVoteValide: z.number(),
     tauxVoteRejete: z.number(),
-    tauxParticipation: z.number(),
+    tauxParticipation: DgeqTurnoutSchema,
     candidats: z.array(DgeqCandidateSchema),
   })
   .passthrough();
@@ -64,7 +71,7 @@ export const DgeqStatisticsSchema = z
     nbVoteRejete: z.number(),
     nbVoteExerce: z.number(),
     nbElecteurInscrit: z.number(),
-    tauxParticipationTotal: z.number(),
+    tauxParticipationTotal: DgeqTurnoutSchema,
     nbCirconscription: z.number(),
     nbCirconscriptionAvecResultat: z.number(),
     nbCirconscriptionSansResultat: z.number(),
@@ -112,7 +119,7 @@ export const PublicRidingSchema = z.object({
   validVotes: z.number(),
   rejectedVotes: z.number(),
   registeredElectors: z.number(),
-  turnoutPct: z.number(),
+  turnoutPct: z.number().nullable(),
   leaderParty: z.string().nullable(),
   candidates: z.array(PublicCandidateSchema),
   projection: RidingProjectionSchema.nullable(),
@@ -140,7 +147,7 @@ export const PublicLiveStateSchema = z.object({
   validVotes: z.number(),
   rejectedVotes: z.number(),
   registeredElectors: z.number(),
-  turnoutPct: z.number(),
+  turnoutPct: z.number().nullable(),
   parties: z.array(PublicPartySchema),
   ridings: z.array(PublicRidingSchema),
 });

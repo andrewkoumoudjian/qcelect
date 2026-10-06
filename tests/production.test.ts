@@ -37,6 +37,27 @@ describe("Élections Québec source contract", () => {
     expect(parsedFixture.circonscriptions).toHaveLength(2);
   });
 
+  it("preserves unavailable turnout without accepting arbitrary strings", () => {
+    const source = structuredClone(fixture);
+    const earlySource = {
+      ...source,
+      statistiques: { ...source.statistiques, tauxParticipationTotal: "n.d." },
+      circonscriptions: source.circonscriptions.map((riding) => ({ ...riding, tauxParticipation: "n.d." })),
+    };
+    const parsed = DgeqResultsSchema.parse(earlySource);
+    const normalized = normalizeDgeqResults(parsed, { ingestedAt: "2026-10-05T20:00:10-04:00", sourceSha256: "early" });
+    expect(normalized.turnoutPct).toBeNull();
+    expect(DgeqResultsSchema.parse({
+      ...earlySource,
+      statistiques: { ...earlySource.statistiques, tauxParticipationTotal: "72.21" },
+    }).statistiques.tauxParticipationTotal).toBe(72.21);
+    expect(normalized.ridings.every((riding) => riding.turnoutPct === null)).toBe(true);
+    expect(DgeqResultsSchema.safeParse({
+      ...earlySource,
+      statistiques: { ...earlySource.statistiques, tauxParticipationTotal: "unexpected" },
+    }).success).toBe(false);
+  });
+
   it("sends conditional validators and accepts HTTP 304", async () => {
     let requestHeaders: Headers | undefined;
     const fetcher: typeof fetch = async (_input, init) => {

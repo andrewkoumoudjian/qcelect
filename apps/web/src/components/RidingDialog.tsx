@@ -40,7 +40,7 @@ export function RidingDialog({
                     <Dialog.Description className="dialogDescription">
                       {riding.pollsReported} / {riding.pollsTotal} bureaux ·{" "}
                       {percent.format(riding.reportingPct)} % dépouillé · participation{" "}
-                      {percent.format(riding.turnoutPct)} %
+                      {riding.turnoutPct === null ? "–" : `${percent.format(riding.turnoutPct)} %`}
                     </Dialog.Description>
                   </div>
                   <Dialog.Close className="dialogClose" aria-label="Fermer">
